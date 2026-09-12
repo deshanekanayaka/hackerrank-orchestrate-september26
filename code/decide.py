@@ -465,30 +465,16 @@ def _validate_row(row: dict, request_id: str) -> dict:
 # ---------------------------------------------------------------------------
 
 def _verify_spending_changes(row: dict, user_id: str, events_df: pd.DataFrame) -> dict:
-    """Check that every event_id cited in spending_changes_needed exists for this user.
-
-    If any cited event is missing, clear spending_changes_needed and downgrade
-    affordable_with_plan to not_affordable (spending changes were load-bearing).
-    """
     changes = row.get("spending_changes_needed", "none")
     if not changes or changes == "none":
         return row
 
     valid_ids = set(events_df[events_df["user_id"] == user_id]["event_id"])
-    bad = []
-    for part in changes.split("|"):
-        # part is stop:<eid> or reduce_to:<eid>:<amount>
-        segments = part.split(":")
-        eid = segments[1] if len(segments) >= 2 else ""
-        if eid and eid not in valid_ids:
-            bad.append(eid)
+    bad = [part.split(":")[1] for part in changes.split("|")
+           if ":" in part and part.split(":")[1] not in valid_ids]
 
     if bad:
-        print(
-            f"  [warn] {row['request_id']} spending_changes cited unknown event(s) {bad} — clearing",
-            file=sys.stderr,
-        )
-        row = dict(row)
+        print(f"  [warn] {row['request_id']} spending_changes cited unknown event(s) {', '.join(bad)} — clearing", file=sys.stderr)
         row["spending_changes_needed"] = "none"
         if row.get("affordability_status") == "affordable_with_plan":
             row["affordability_status"] = "not_affordable"
