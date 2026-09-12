@@ -60,8 +60,10 @@ class MessageResult:
         if self.intent not in {"cancel", "amend", "confirm", "other"}:
             raise ValueError(f"intent must be one of cancel/amend/confirm/other, got {self.intent!r}")
         if self.intent != "amend":
-            if self.new_amount is not None or self.new_date is not None:
-                raise ValueError(f"new_amount and new_date must be null for intent={self.intent!r}")
+            # Coerce instead of reject — the model sometimes returns non-null fields
+            # on confirm/cancel/other intents; we ignore them anyway.
+            self.new_amount = None
+            self.new_date = None
         if self.new_date is not None and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", self.new_date):
             raise ValueError(f"new_date must be YYYY-MM-DD, got {self.new_date!r}")
 

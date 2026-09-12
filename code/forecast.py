@@ -48,9 +48,9 @@ class UserForecast:
         min_bal = min(self.balance_on(d) for d in dates)
         return min(requested, max(0.0, min_bal - self.min_balance))
 
-    def earliest_full_payment_date(self, requested: float) -> Optional[date]:
-        """First date where paying requested keeps balance >= min_balance from that date to end."""
-        end = self.request_date + timedelta(days=FORECAST_DAYS)
+    def earliest_full_payment_date(self, requested: float, horizon: Optional[date] = None) -> Optional[date]:
+        """First date where paying requested keeps balance >= min_balance from that date to horizon."""
+        end = horizon if horizon is not None else self.request_date + timedelta(days=FORECAST_DAYS)
         dates = sorted(set([self.request_date] + [cf.on_date for cf in self.cash_flows if self.request_date <= cf.on_date <= end]))
         for i, d in enumerate(dates):
             suffix_min = min(self.balance_on(d2) for d2 in dates[i:])
@@ -58,9 +58,9 @@ class UserForecast:
                 return d
         return None
 
-    def check_safe_with_extra(self, extra: list[CashFlow]) -> bool:
-        """Check that balance never falls below min_balance over 90 days with extra flows added."""
-        end = self.request_date + timedelta(days=FORECAST_DAYS)
+    def check_safe_with_extra(self, extra: list[CashFlow], horizon: Optional[date] = None) -> bool:
+        """Check that balance never falls below min_balance through horizon with extra flows added."""
+        end = horizon if horizon is not None else self.request_date + timedelta(days=FORECAST_DAYS)
         all_flows = self.cash_flows + extra
         dates = sorted(set(
             [self.request_date]
@@ -160,6 +160,12 @@ def _fill_ocr(events: pd.DataFrame, images_df: pd.DataFrame,
 # ---------------------------------------------------------------------------
 # Recurring pattern detection and projection
 # ---------------------------------------------------------------------------
+
+def _next_month(d: date, anchor_day: int) -> date:
+    month = d.month % 12 + 1
+    year = d.year + (1 if d.month == 12 else 0)
+    return d.replace(year=year, month=month, day=min(anchor_day, calendar.monthrange(year, month)[1]))
+
 
 def _detect_interval(dates: list[date], min_count: int = _MIN_OCCURRENCES) -> Optional[int]:
     """Return canonical interval in days if pattern is consistent, else None."""
@@ -275,17 +281,14 @@ def _infer_recurring(
 
         last_row = grp_sorted.iloc[-1]
         last_date = date_list[-1]
-        converted = conv_list[-1]
+        # Use median for income to be robust to one-time salary anomalies;
+        # use last value for expenses (recent amounts are usually most accurate).
+        converted = statistics.median(conv_list) if is_income else conv_list[-1]
 
         existing = existing_by_cat.get(category, set())
         result: list[CashFlow] = []
         anchor_day = last_date.day  # preserved so February clamping doesn't drift subsequent months
-        if interval == 30:
-            month = last_date.month % 12 + 1
-            year = last_date.year + (1 if last_date.month == 12 else 0)
-            next_d = last_date.replace(year=year, month=month, day=min(anchor_day, calendar.monthrange(year, month)[1]))
-        else:
-            next_d = last_date + timedelta(days=interval)
+        next_d = _next_month(last_date, anchor_day) if interval == 30 else last_date + timedelta(days=interval)
         while next_d <= end:
             if next_d >= request_date:
                 near = any(abs((next_d - ed).days) <= interval // 3 for ed in existing)
@@ -297,12 +300,7 @@ def _infer_recurring(
                         event_id=f"recurring:{last_row['event_id']}",
                         label=f"recurring:{category}",
                     ))
-            if interval == 30:
-                month = next_d.month % 12 + 1
-                year = next_d.year + (1 if next_d.month == 12 else 0)
-                next_d = next_d.replace(year=year, month=month, day=min(anchor_day, calendar.monthrange(year, month)[1]))
-            else:
-                next_d += timedelta(days=interval)
+            next_d = _next_month(next_d, anchor_day) if interval == 30 else next_d + timedelta(days=interval)
         return result
 
     flows: list[CashFlow] = []
@@ -381,6 +379,12 @@ def build_forecast(
 
             converted = _to_home(float(amt), ev['currency'], home_currency, sd, rates_lookup)
             if converted is None:
+                continue
+
+            # Skip single payments that exceed 5× the start balance — almost certainly
+            # a total-contract value read from a document (e.g. OCR on a lease), not one payment.
+            # ponytail: hard-coded 5× multiplier; calibrate if false-positives emerge
+            if converted > start_balance * 5:
                 continue
 
             if direction == 'debit' and status in ('pending', 'scheduled'):
