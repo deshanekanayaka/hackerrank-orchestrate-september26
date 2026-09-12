@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 6: build `code/evaluate.py`, per-field exact-match accuracy against `dataset/sample_requests.csv`.
+Stage 7: guardrails: schema validation, allowed-value whitelist, retry on malformed, deterministic overrides, abstain path.
 
 ## In progress
 
-- [ ] Stage 6: evaluation script
+- [ ] Stage 7: guardrails
 
 ## Blocked
 
@@ -63,7 +63,7 @@ Stage 6: build `code/evaluate.py`, per-field exact-match accuracy against `datas
 - [x] 3 prompt layer with allowed values enumerated
 - [x] 4 model call returning observations only
 - [x] 5 deterministic decision layer
-- [ ] 6 evaluation script, per-field accuracy
+- [x] 6 evaluation script, per-field accuracy
 - [ ] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [ ] 8 evidence verification (if output cites sources)
 - [ ] 9 adversarial input detectors

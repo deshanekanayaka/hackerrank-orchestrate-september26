@@ -104,10 +104,18 @@ def _check_images(images: pd.DataFrame) -> dict[str, bool]:
     return result
 
 
-def load_all(verbose: bool = True) -> Inputs:
+def load_all(verbose: bool = True, requests_path: "Path | None" = None) -> Inputs:
     dfs: dict[str, pd.DataFrame] = {}
     for name in SCHEMAS:
-        dfs[name] = _load_csv(name)
+        if name == "requests" and requests_path is not None:
+            df = pd.read_csv(requests_path, dtype=str, keep_default_na=False)
+            required = set(SCHEMAS["requests"])
+            missing = required - set(df.columns)
+            if missing:
+                raise ValueError(f"requests file missing required columns: {sorted(missing)}")
+            dfs[name] = df[SCHEMAS["requests"]]
+        else:
+            dfs[name] = _load_csv(name)
         if verbose:
             print(f"  {name}: {len(dfs[name])} rows")
 
