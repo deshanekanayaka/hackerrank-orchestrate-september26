@@ -8,7 +8,7 @@ from typing import Optional
 import pandas as pd
 
 from forecast import CashFlow, UserForecast, FORECAST_DAYS
-from load_inputs import Inputs
+from load_inputs import Inputs, ADVERSARIAL_RE
 
 
 @dataclass
@@ -261,6 +261,21 @@ def _decide_one(
     user_events: pd.DataFrame,
 ) -> DecisionRow:
     request_id = req_row['request_id']
+
+    # Reject requests whose text contains instruction-injection patterns
+    if ADVERSARIAL_RE.search(str(req_row.get('request_text', ''))):
+        print(f"  [warn] adversarial pattern in request_text of {request_id} — forcing not_affordable", file=sys.stderr)
+        return DecisionRow(
+            request_id=request_id,
+            amount_safe_to_pay=0.0,
+            affordability_status='not_affordable',
+            recommended_payment_method='not_recommended',
+            payment_plan='none',
+            earliest_date_for_full_payment='',
+            spending_changes_needed='none',
+            decision_explanation='Request text contained disallowed content.',
+        )
+
     request_date = forecast.request_date
     requested_amount = float(req_row['requested_amount'])
     desired_ts = req_row['desired_completion_date']

@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 9: Adversarial input detectors
+
+**What we scan**: `message_text` (Stage 7) and `request_text` (this stage). Both use `_ADVERSARIAL_RE` from `load_inputs.py`.
+**message_text**: per-user flag set at load time in `_check_adversarial`. A match sets `evidence_complete[user_id] = False`, which forces `not_affordable` for all that user's requests.
+**request_text**: per-request early exit at the top of `_decide_one` in `decide.py`. A match returns `not_affordable` before any forecast computation runs.
+**No data model change**: the per-request check lives inside the decision function, so `Inputs` and `UserForecast` need no new fields.
+**Scores unchanged**: no sample request triggered the pattern.
+
+---
+
 ### Stage 8: Evidence verification implementation choices
 
 **Decision**: `_verify_spending_changes` in `decide.py` checks that every event_id cited in `spending_changes_needed` exists in `financial_events.csv` for that user.
