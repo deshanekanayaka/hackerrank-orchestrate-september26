@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 10: concurrency cap and backoff on every batch of model calls.
+Run the pipeline twice to confirm the same output, then measure iteration accuracy.
 
 ## In progress
 
-- [ ] Stage 10: concurrency cap and backoff
+- [ ] Reproducibility check: two runs in a row produce the same output
 
 ## Blocked
 
@@ -22,7 +22,7 @@ Stage 10: concurrency cap and backoff on every batch of model calls.
 ## Done
 
 - [x] Stage 5: deterministic decision layer (`code/forecast.py`, `code/decide.py`). Accuracy: affordability_status 19/25 (76%), recommended_payment_method 21/25 (84%), earliest_date_for_full_payment 18/25 (72%).
-- [x] Stage 4: model call layer (`code/ocr.py`, `code/parse_messages.py`). Real Haiku calls on 2 images and 3 messages verified. Cache replay produced identical output.
+- [x] Stage 4: model call layer (`code/ocr.py`, `code/parse_messages.py`). Real Haiku calls on 2 images and 3 messages verified. Cache replay produced the same output.
 - [x] Stage 3: prompt layer (`code/prompts.py`). IMAGE_PROMPT, MESSAGE_PROMPT, ImageResult, MessageResult dataclasses. All checks pass.
 - [x] Stage 2: response cache and replay (`code/cache.py`). SHA-256 keyed, one JSON file per entry in `cache/`, get/put pass self-test.
 - [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
@@ -67,8 +67,8 @@ Stage 10: concurrency cap and backoff on every batch of model calls.
 - [x] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [x] 8 evidence verification (if output cites sources)
 - [x] 9 adversarial input detectors
-- [ ] 10 concurrency cap and backoff
-- [ ] Two consecutive runs produce identical output
+- [x] 10 concurrency cap and backoff
+- [ ] Two consecutive runs produce the same output
 - [ ] Iteration 1 measured, logged
 - [ ] Iteration 2 measured, logged
 - [ ] Iteration 3 measured, logged
