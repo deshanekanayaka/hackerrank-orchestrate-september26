@@ -26,7 +26,7 @@ def call_with_retry(fn: Callable[[], Any], label: str) -> Any | None:
         except (json.JSONDecodeError, ValueError, KeyError) as exc:
             print(f"  [warn] {label} attempt {attempt + 1} malformed: {exc}", file=sys.stderr)
         except (anthropic.RateLimitError, anthropic.APIStatusError) as exc:
-            delay = _BACKOFF[min(attempt, len(_BACKOFF) - 1)]
+            delay = _BACKOFF[min(attempt, 1)]
             print(f"  [warn] {label} attempt {attempt + 1} API error ({exc}), retrying in {delay}s", file=sys.stderr)
             if attempt < 2:
                 time.sleep(delay)

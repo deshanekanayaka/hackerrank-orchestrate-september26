@@ -98,13 +98,10 @@ def _cast(dfs: dict[str, pd.DataFrame]) -> None:
 
 def _check_adversarial(messages: pd.DataFrame, evidence_complete: dict[str, bool]) -> None:
     """Flag users whose messages contain instruction-injection patterns."""
-    for _, row in messages.iterrows():
-        text = str(row.get("message_text", ""))
-        if _ADVERSARIAL_RE.search(text):
-            uid = row["user_id"]
-            mid = row["message_id"]
-            evidence_complete[uid] = False
-            print(f"  [warn] adversarial pattern in {mid} (user {uid}) — marking incomplete", file=sys.stderr)
+    hits = messages[messages["message_text"].str.contains(_ADVERSARIAL_RE, na=False)]
+    for _, row in hits.iterrows():
+        evidence_complete[row["user_id"]] = False
+        print(f"  [warn] adversarial pattern in {row['message_id']} (user {row['user_id']}) — marking incomplete", file=sys.stderr)
 
 
 def _check_images(images: pd.DataFrame) -> dict[str, bool]:

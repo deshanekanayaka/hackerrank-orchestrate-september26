@@ -432,16 +432,13 @@ def _decide_one(
 
 _VALID_AFFORDABILITY = {"affordable_now", "affordable_with_plan", "affordable_later", "not_affordable"}
 _VALID_METHOD = {"full_payment", "partial_payment", "installments", "wait", "not_recommended"}
-_OUTPUT_FIELDS = [
-    "request_id", "amount_safe_to_pay", "affordability_status",
-    "recommended_payment_method", "payment_plan",
-    "earliest_date_for_full_payment", "spending_changes_needed", "decision_explanation",
-]
-
-
 def _validate_row(row: dict, request_id: str) -> dict:
     """Return row unchanged if valid, else return a safe not_affordable default."""
-    missing = [f for f in _OUTPUT_FIELDS if f not in row or row[f] is None]
+    missing = [f for f in (
+        "request_id", "amount_safe_to_pay", "affordability_status",
+        "recommended_payment_method", "payment_plan",
+        "earliest_date_for_full_payment", "spending_changes_needed", "decision_explanation",
+    ) if f not in row or row[f] is None]
     bad_status = row.get("affordability_status") not in _VALID_AFFORDABILITY
     bad_method = row.get("recommended_payment_method") not in _VALID_METHOD
     if missing or bad_status or bad_method:
