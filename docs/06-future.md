@@ -89,5 +89,6 @@ flowchart TD
     CONF -->|high confidence| API
     CONF -->|low confidence| QUEUE
     QUEUE --> API
-    API --> USER
+    USER -->|request| LB
+    API -->|response| USER
 ```

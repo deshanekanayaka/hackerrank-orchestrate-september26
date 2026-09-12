@@ -43,12 +43,12 @@ Result after (monkey-patch test, not committed): requests 03 and 18 were fixed (
 |---|---|
 | Model calls per full run (250 requests) | 231 (215 message parses + 16 image OCRs) |
 | Requests skipped by adversarial gate | 0 (no adversarial inputs in this dataset) |
-| Estimated cost per full run | USD 0.06 |
-| Estimated cost per request | USD 0.00024 |
+| Estimated cost per full run | USD 0.10085 |
+| Estimated cost per request | USD 0.0004034 |
 | Estimated wall-clock runtime (cold) | 3 to 4 minutes |
 | Estimated wall-clock runtime (warm cache) | 30 seconds |
 
-Cost estimate uses Claude Haiku 4.5 pricing: USD 0.80 per million input tokens and USD 4.00 per million output tokens. Message parse: 200 input tokens + 30 output tokens per call. Image OCR: 1,500 input tokens + 20 output tokens per call. We cached parsed results rather than raw API responses. Token counts are estimated from prompt length, not measured.
+Cost estimate uses `claude-haiku-4-5-20251001` pricing as of 2026-09-12: USD 1.00 per million input tokens and USD 5.00 per million output tokens. Message parse: 200 input tokens + 30 output tokens = USD 0.000350 per call. Image OCR: 1,500 input tokens + 20 output tokens = USD 0.001600 per call. Total: (215 × USD 0.000350) + (16 × USD 0.001600) = USD 0.07525 + USD 0.02560 = USD 0.10085. We cached parsed results rather than raw API responses. Token counts are estimated from prompt length, not measured.
 
 ---
 

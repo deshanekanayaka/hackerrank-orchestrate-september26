@@ -50,7 +50,8 @@ class UserForecast:
 
     def earliest_full_payment_date(self, requested: float, horizon: Optional[date] = None) -> Optional[date]:
         """First date where paying requested keeps balance >= min_balance from that date to horizon."""
-        end = horizon if horizon is not None else self.request_date + timedelta(days=FORECAST_DAYS)
+        forecast_end = self.request_date + timedelta(days=FORECAST_DAYS)
+        end = min(horizon, forecast_end) if horizon is not None else forecast_end
         dates = sorted(set([self.request_date] + [cf.on_date for cf in self.cash_flows if self.request_date <= cf.on_date <= end]))
         for i, d in enumerate(dates):
             suffix_min = min(self.balance_on(d2) for d2 in dates[i:])
@@ -60,7 +61,8 @@ class UserForecast:
 
     def check_safe_with_extra(self, extra: list[CashFlow], horizon: Optional[date] = None) -> bool:
         """Check that balance never falls below min_balance through horizon with extra flows added."""
-        end = horizon if horizon is not None else self.request_date + timedelta(days=FORECAST_DAYS)
+        forecast_end = self.request_date + timedelta(days=FORECAST_DAYS)
+        end = min(horizon, forecast_end) if horizon is not None else forecast_end
         all_flows = self.cash_flows + extra
         dates = sorted(set(
             [self.request_date]
@@ -384,7 +386,7 @@ def build_forecast(
             # Skip single payments that exceed 5× the start balance — almost certainly
             # a total-contract value read from a document (e.g. OCR on a lease), not one payment.
             # ponytail: hard-coded 5× multiplier; calibrate if false-positives emerge
-            if converted > start_balance * 5:
+            if start_balance > 0 and converted > start_balance * 5:
                 continue
 
             if direction == 'debit' and status in ('pending', 'scheduled'):

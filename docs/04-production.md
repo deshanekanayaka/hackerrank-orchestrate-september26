@@ -62,7 +62,7 @@ Workers hold no state between requests. They read inputs and write a result. Add
 
 ## Latency
 
-Stage 1 (OCR and message parse) takes about 3 to 4 minutes for 231 model calls at a concurrency cap of 5. Stages 2 and 3 are sub-second per request. In a real-time service, OCR and message parse must complete first. P50 is about 2 seconds. P99 is about 8 seconds on Haiku API tail latency.
+Stage 1 (OCR and message parse) takes about 3 to 4 minutes for 231 model calls at a concurrency cap of 5. Stages 2 and 3 are sub-second per request. In a real-time service, OCR and message parse must complete first. These are projected figures based on typical Haiku API latency, not measured service-level targets: estimated P50 around 2 seconds per request, estimated P99 around 8 seconds.
 
 ## Reliability
 
@@ -70,7 +70,7 @@ If the model API is down, Stage 1 fails for any request with a new image or mess
 
 ## Cost
 
-One full run of 250 requests costs about USD 0.06. This breaks down to 215 message parses at USD 0.00018 each and 16 image OCRs at USD 0.0013 each. If inputs are unchanged, the cache replays all results and repeat runs cost USD 0.00. Rejecting adversarial messages at the input stage skips the model call and reduces cost.
+One full run of 250 requests costs about USD 0.10 (`claude-haiku-4-5-20251001` at USD 1.00/1M input and USD 5.00/1M output, 2026-09-12). This breaks down to 215 message parses at USD 0.000350 each and 16 image OCRs at USD 0.001600 each. If inputs are unchanged, the cache replays all results and repeat runs cost USD 0.00. Rejecting adversarial messages at the input stage skips the model call and reduces cost.
 
 ## Data and privacy
 
@@ -90,7 +90,7 @@ If `spending_changes_needed` is not `none`, a human advisor must review the requ
 
 ## Known failure modes
 
-**Salary amendment missed**: a message amends the next salary but has no `related_event_id`. We parse the amendment but do not apply it. The forecast uses the recurring-pattern salary instead. We detect this in production by comparing the forecast salary to the message-stated salary and flagging the gap.
+**Salary amendment missed**: a message amends the next salary but has no `related_event_id`. We parse the amendment but do not apply it (see `_apply_messages` in `forecast.py`, which requires a non-empty `related_event_id`). The forecast uses the recurring-pattern salary instead. Planned: compare the recurring-pattern salary against the message-stated amount and flag the gap. Not yet implemented. See `docs/05-limits.md` limit 3.
 
 **Outlier filter removes a valid expense**: we filter event amounts outside 50% to 150% of the category median. A user with one large unusual expense in a normally small category loses that expense from the projection. The balance is overstated. We detect this by watching for `amount_safe_to_pay` values much larger than recent spending headroom.
 
