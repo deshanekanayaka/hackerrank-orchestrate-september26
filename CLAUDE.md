@@ -92,7 +92,7 @@ Four carry real weight:
 5. **Name by role.** No `utils`, `helpers`, `common`, `final_v2`. A file name says what the file does.
 6. **No generated files in the source tree.** Caches and derived data go in an ignored directory.
 7. **No multi-agent frameworks or graph orchestration libraries** unless you tell me why a plain function pipeline fails and I agree, and no router-plus-specialists design unless the same test passes. A simple architecture with clear boundaries beats a complicated one, and both previous winners were single-agent.
-8. **Commit after every completed loop.** Message names the stage. Push to a new branch named `stage/<N>-<short-slug>` and open a PR against `main`. Never commit directly to `main`.
+8. **Commit after every completed loop.** Message names the stage. Push to a new branch named `stage/<N>-<short-slug>` on the fork (`origin`). Never commit directly to `main`. Never open a pull request against the upstream contest repo.
 9. **Everything runs from the command line** and reads inputs from the paths the problem statement specifies. No hardcoded absolute paths, no manual steps.
 10. **Model call discipline.** Low temperature for structured output. Enumerate every allowed value in the prompt. Validate responses against a schema object rather than checking keys by hand. Normalise the model's vocabulary to our schema through an explicit mapping rather than hoping it matches. One retry on malformed, then abstain.
 11. **Concurrency and backoff** on every batch of model calls: cap concurrent requests, retry on rate-limit and server errors with exponential backoff, three attempts. A full run must not die halfway.
