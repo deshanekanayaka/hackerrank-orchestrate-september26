@@ -1,5 +1,6 @@
 """Deterministic decision layer: produce all 8 output fields from forecast + inputs."""
 from __future__ import annotations
+import sys
 from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Optional
@@ -426,6 +427,40 @@ def _decide_one(
 
 
 # ---------------------------------------------------------------------------
+# Output validation (whitelist + schema)
+# ---------------------------------------------------------------------------
+
+_VALID_AFFORDABILITY = {"affordable_now", "affordable_with_plan", "affordable_later", "not_affordable"}
+_VALID_METHOD = {"full_payment", "partial_payment", "installments", "wait", "not_recommended"}
+def _validate_row(row: dict, request_id: str) -> dict:
+    """Return row unchanged if valid, else return a safe not_affordable default."""
+    missing = [f for f in (
+        "request_id", "amount_safe_to_pay", "affordability_status",
+        "recommended_payment_method", "payment_plan",
+        "earliest_date_for_full_payment", "spending_changes_needed", "decision_explanation",
+    ) if f not in row or row[f] is None]
+    bad_status = row.get("affordability_status") not in _VALID_AFFORDABILITY
+    bad_method = row.get("recommended_payment_method") not in _VALID_METHOD
+    if missing or bad_status or bad_method:
+        print(
+            f"  [warn] {request_id} output validation failed "
+            f"(missing={missing}, bad_status={bad_status}, bad_method={bad_method}) — using safe default",
+            file=sys.stderr,
+        )
+        return {
+            "request_id": request_id,
+            "amount_safe_to_pay": 0,
+            "affordability_status": "not_affordable",
+            "recommended_payment_method": "not_recommended",
+            "payment_plan": "none",
+            "earliest_date_for_full_payment": "",
+            "spending_changes_needed": "none",
+            "decision_explanation": "Output validation failed; conservative default applied.",
+        }
+    return row
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -454,7 +489,7 @@ def decide_all(inputs: Inputs, forecasts: dict[str, UserForecast]) -> list[dict]
         user_events = inputs.events[inputs.events['user_id'] == user_id]
 
         decision = _decide_one(req_row, inputs.options, forecast, profile_row, user_events)
-        rows.append(decision.to_dict())
+        rows.append(_validate_row(decision.to_dict(), req_row['request_id']))
 
     return rows
 

@@ -1,9 +1,18 @@
 """Load and validate all dataset inputs."""
+import re
 import sys
 from pathlib import Path
 from typing import NamedTuple
 
 import pandas as pd
+
+# Phrases that indicate an attempt to inject instructions via message text
+_ADVERSARIAL_RE = re.compile(
+    r"\b(ignore (previous |all )?(instructions?|rules?|prompt)|"
+    r"you are now|new instructions?|forget (everything|what)|"
+    r"disregard|system prompt|act as)\b",
+    re.IGNORECASE,
+)
 
 DATASET = Path(__file__).parent.parent / "dataset"
 
@@ -87,6 +96,14 @@ def _cast(dfs: dict[str, pd.DataFrame]) -> None:
             dfs[name][col] = pd.to_datetime(dfs[name][col], errors="coerce", utc=False)
 
 
+def _check_adversarial(messages: pd.DataFrame, evidence_complete: dict[str, bool]) -> None:
+    """Flag users whose messages contain instruction-injection patterns."""
+    hits = messages[messages["message_text"].str.contains(_ADVERSARIAL_RE, na=False)]
+    for _, row in hits.iterrows():
+        evidence_complete[row["user_id"]] = False
+        print(f"  [warn] adversarial pattern in {row['message_id']} (user {row['user_id']}) — marking incomplete", file=sys.stderr)
+
+
 def _check_images(images: pd.DataFrame) -> dict[str, bool]:
     """Return user_id -> True when all that user's image files exist on disk."""
     result: dict[str, bool] = {}
@@ -119,6 +136,7 @@ def load_all(verbose: bool = True, requests_path: "Path | None" = None) -> Input
         raise ValueError(f"Requests reference users with no profile: {sorted(orphaned)}")
 
     evidence_complete = _check_images(dfs["images"])
+    _check_adversarial(dfs["messages"], evidence_complete)
 
     if verbose:
         ok = sum(evidence_complete.values())
