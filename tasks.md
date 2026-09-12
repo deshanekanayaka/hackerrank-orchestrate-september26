@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 7: guardrails: schema validation, allowed-value whitelist, retry on malformed, deterministic overrides, abstain path.
+Stage 8: evidence verification. If our output cites sources, check that those sources were actually consulted and support the answer.
 
 ## In progress
 
-- [ ] Stage 7: guardrails
+- [ ] Stage 8: evidence verification
 
 ## Blocked
 
@@ -64,7 +64,7 @@ Stage 7: guardrails: schema validation, allowed-value whitelist, retry on malfor
 - [x] 4 model call returning observations only
 - [x] 5 deterministic decision layer
 - [x] 6 evaluation script, per-field accuracy
-- [ ] 7 guardrails: schema, whitelist, retry, overrides, abstain
+- [x] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [ ] 8 evidence verification (if output cites sources)
 - [ ] 9 adversarial input detectors
 - [ ] 10 concurrency cap and backoff

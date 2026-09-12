@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 7: Guardrails implementation choices
+
+**model_client.py**: retry count raised from 2 to 3 attempts. Rate-limit and server errors (`RateLimitError`, `APIStatusError`) now retry with 2s/4s exponential backoff. Malformed-output errors retry immediately.
+**load_inputs.py**: `_check_adversarial` scans every `message_text` for nine instruction-injection patterns (regex). A match sets `evidence_complete[user_id] = False` and logs the message ID.
+**decide.py**: `_validate_row` checks all 8 output fields are present and that `affordability_status` and `recommended_payment_method` are in their enum whitelists. A failing row is replaced with a safe `not_affordable` default.
+**forecast.py**: minimum-balance deterministic override was already implemented via `check_safe_with_extra`. No change needed.
+**Scores unchanged**: all valid rows pass the whitelist, so no rows were replaced.
+
+---
+
 ### Stage 6: Evaluation script implementation choices
 
 **Decision**: `evaluate.py` runs the full pipeline on `sample_requests.csv` and compares all seven scored fields.
