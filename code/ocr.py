@@ -4,11 +4,12 @@ import base64
 import hashlib
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from cache import get as cache_get, put as cache_put
-from model_client import CLIENT, MODEL, call_with_retry
+from model_client import CLIENT, MODEL, MAX_CONCURRENT, call_with_retry
 from prompts import IMAGE_PROMPT, ImageResult, strip_fences
 
 _DATASET = Path(__file__).parent.parent / "dataset"
@@ -31,36 +32,43 @@ def _call(img_path: Path) -> ImageResult:
     return ImageResult(**json.loads(strip_fences(msg.content[0].text)))
 
 
+def _ocr_one(image_id: str, user_id: str, img_path: Path) -> tuple[str, str, ImageResult | None]:
+    """Return (image_id, user_id, result). Cache hit or model call."""
+    file_hash = hashlib.sha256(img_path.read_bytes()).hexdigest()
+    cache_key = f"ocr:{image_id}:{file_hash}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        return image_id, user_id, ImageResult(**cached)
+    result = call_with_retry(lambda p=img_path: _call(p), image_id)
+    if result is not None:
+        cache_put(cache_key, {"amount": result.amount, "currency": result.currency})
+    return image_id, user_id, result
+
+
 def run(
     images_df,
     evidence_complete: dict[str, bool],
 ) -> dict[str, ImageResult | None]:
-    """OCR all images. Sets evidence_complete[user_id]=False on unrecoverable failure."""
+    """OCR all images concurrently. Sets evidence_complete[user_id]=False on failure."""
     results: dict[str, ImageResult | None] = {}
-    for _, row in images_df.iterrows():
-        image_id = row["image_id"]
-        user_id = row["user_id"]
-        img_path = _DATASET / "media" / "images" / f"{image_id}.png"
+    futures = {}
 
-        if not img_path.exists():
-            results[image_id] = None
-            evidence_complete[user_id] = False
-            continue
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT) as pool:
+        for _, row in images_df.iterrows():
+            image_id, user_id = row["image_id"], row["user_id"]
+            img_path = _DATASET / "media" / "images" / f"{image_id}.png"
+            if not img_path.exists():
+                results[image_id] = None
+                evidence_complete[user_id] = False
+                continue
+            futures[pool.submit(_ocr_one, image_id, user_id, img_path)] = (image_id, user_id)
 
-        file_hash = hashlib.sha256(img_path.read_bytes()).hexdigest()
-        cache_key = f"ocr:{image_id}:{file_hash}"
-        cached = cache_get(cache_key)
-        if cached is not None:
-            results[image_id] = ImageResult(**cached)
-            continue
-
-        result = call_with_retry(lambda p=img_path: _call(p), image_id)
-        if result is None:
-            print(f"  [warn] ocr {image_id} — marking user {user_id} incomplete", file=sys.stderr)
-            evidence_complete[user_id] = False
-        else:
-            cache_put(cache_key, {"amount": result.amount, "currency": result.currency})
-        results[image_id] = result
+        for future in as_completed(futures):
+            image_id, user_id, result = future.result()
+            if result is None:
+                print(f"  [warn] ocr {image_id} — marking user {user_id} incomplete", file=sys.stderr)
+                evidence_complete[user_id] = False
+            results[image_id] = result
 
     return results
 

@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 10: Concurrency cap and backoff
+
+**model_client.py**: adds `threading.Semaphore(MAX_CONCURRENT=5)` wrapping every `call_with_retry` call. No caller can hold more than 5 simultaneous API connections, serial or threaded.
+**ocr.py**: replaces the serial loop with `ThreadPoolExecutor(max_workers=MAX_CONCURRENT)`. The 16 image calls now run in parallel, bounded by the semaphore. `as_completed` re-raises thread exceptions so failures are not silent.
+**parse_messages.py**: stays serial. At 215 calls, parallel execution raises rate-limit risk and the cache makes reruns free.
+**Backoff**: in place from Stage 7 (3 attempts, 2s/4s). Stage 10 adds the concurrency control.
+**Accuracy unchanged**: 96/175 (54.9%).
+
+---
+
 ### Stage 9: Adversarial input detectors
 
 **What we scan**: `message_text` (Stage 7) and `request_text` (this stage). Both use `_ADVERSARIAL_RE` from `load_inputs.py`.
