@@ -1,6 +1,6 @@
 # tasks.md
 
-Maintained by Claude Code. Survives session resets — this file plus `docs/` rebuilds lost context.
+Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a session reset.
 
 **H0**: {{clock time}}
 **H24**: {{clock time}}
@@ -9,23 +9,19 @@ Maintained by Claude Code. Survives session resets — this file plus `docs/` re
 
 ## Next action
 
-_One specific line. File, function, or command. Updated at the end of every loop._
-
->
+Stage 2: build `code/cache.py`, a response cache and replay layer keyed by input hash.
 
 ## In progress
 
-- [ ] 
+- [ ] Stage 2: response cache and replay
 
 ## Blocked
 
-- [ ] 
+- [ ]
 
 ## Done
 
-_Rolled up, not a transcript._
-
-- [ ] 
+- [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
 
 ---
 
@@ -34,7 +30,7 @@ _Rolled up, not a transcript._
 ### H0-H2 Understand
 - [ ] Read the problem statement twice, alone
 - [ ] Read the platform AGENTS.md
-- [ ] Checked for a scoring rubric / evaluation criteria file, and read it if present
+- [ ] If a scoring rubric or evaluation criteria file is present, read it
 - [ ] Input audit complete
 - [ ] `docs/00-brief.md` written
 - [ ] I can say what goes in and what comes out
@@ -42,28 +38,28 @@ _Rolled up, not a transcript._
 ### H2-H4 Architecture (my decisions)
 - [ ] PLAYBOOK.md read
 - [ ] Options presented for all nine decisions
-- [ ] D0 model decides versus code decides — chosen
-- [ ] D1 pipeline shape — chosen
-- [ ] D2 model calls per record — chosen
-- [ ] D3 deterministic versus model routing — chosen
-- [ ] D4 retrieval — chosen
-- [ ] D5 confidence — chosen
-- [ ] D6 non-text input handling (if applicable) — chosen
-- [ ] D7 abstain policy — chosen
-- [ ] D8 evaluation approach — chosen
-- [ ] D9 model tiering — chosen
-- [ ] D10 evidence verification — chosen
+- [ ] D0 model decides versus code decides: chosen
+- [ ] D1 pipeline shape: chosen
+- [ ] D2 model calls per record: chosen
+- [ ] D3 deterministic versus model routing: chosen
+- [ ] D4 retrieval: chosen
+- [ ] D5 confidence: chosen
+- [ ] D6 non-text input handling (if applicable): chosen
+- [ ] D7 abstain policy: chosen
+- [ ] D8 evaluation approach: chosen
+- [ ] D9 model tiering: chosen
+- [ ] D10 evidence verification: chosen
 - [ ] `docs/01-architecture.md` written with Mermaid build diagram
 - [ ] `docs/02-decisions.md` opened with one entry per decision
 - [ ] I can name the stages in order and point at the diagram
 
 ### H4-H10 Build
-- [ ] 1 loader and input validation
+- [x] 1 loader and input validation
 - [ ] 2 response cache and replay
 - [ ] 3 prompt layer with allowed values enumerated
 - [ ] 4 model call returning observations only
 - [ ] 5 deterministic decision layer
-- [ ] 6 evaluation harness, per-field accuracy
+- [ ] 6 evaluation script, per-field accuracy
 - [ ] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [ ] 8 evidence verification (if output cites sources)
 - [ ] 9 adversarial input detectors
@@ -85,10 +81,10 @@ _Rolled up, not a transcript._
 - [ ] Read architecture and decisions docs before coding
 - [ ] Full run on all records
 - [ ] Output reviewed: counts, duplicates, allowed values, ranges, empty fields
-- [ ] 20 records sampled and checked
+- [ ] 20 records sampled and reviewed
 - [ ] Guardrail audit against the six seams
-- [ ] Adversarial input check: embedded instructions, pressure language, mixed languages
-- [ ] Top issues fixed
+- [ ] Adversarial input review: embedded instructions, pressure language, mixed languages
+- [ ] Major issues fixed
 - [ ] `/ponytail-review` run, flagged code removed
 - [ ] `/ponytail-audit` run, flagged code removed
 - [ ] `docs/03-trace.md` written
@@ -101,8 +97,8 @@ _Rolled up, not a transcript._
 - [ ] Architecture doc read out loud
 - [ ] Trace doc read out loud
 - [ ] Decisions, production, future, limits, evaluation read
-- [ ] Everything I stumbled on has been re-explained
-- [ ] Anything wrong in the docs has been fixed
+- [ ] I re-explained everything I stumbled on
+- [ ] I fixed anything wrong in the docs
 
 ### H21-H23 Ship
 - [ ] Output artifact verified against the problem statement
@@ -110,7 +106,7 @@ _Rolled up, not a transcript._
 - [ ] Honesty note added to README
 - [ ] Packaged
 - [ ] Submitted
-- [ ] Confirmation received
+- [ ] Submission accepted by platform
 
 ### H23-H24 Buffer
 - [ ] Trace and production docs read once more
