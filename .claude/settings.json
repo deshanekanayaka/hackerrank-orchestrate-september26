@@ -1,0 +1,5 @@
+{
+  "env": {
+    "SIMPLE_ENGLISH_LINT_EXCLUDE": "*/CLAUDE.md:*/AGENTS.md"
+  }
+}

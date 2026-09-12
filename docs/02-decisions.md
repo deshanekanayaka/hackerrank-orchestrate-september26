@@ -4,6 +4,15 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 1: Loader implementation choices
+
+**Decision**: load all CSVs to string dtype first, then cast numerics and dates with `errors="coerce"`.
+**Rejected**: strict dtype inference at read time. Pandas inference silently promotes integer columns containing blanks to float, and it rejects mixed-format date strings rather than leaving NaN.
+**Risk**: a malformed amount becomes NaN instead of a crash. The Stage 7 guardrail will catch NaN in critical fields before any decision row is written.
+**Where**: `code/load_inputs.py`
+
+---
+
 ### D-10: Evidence verification
 
 **Decision**: generate `decision_explanation` from code using actual event IDs, never from a model prompt.
