@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 2: build `code/cache.py`, a response cache and replay layer keyed by input hash.
+Stage 3: build `code/prompts.py`, the prompt layer with every allowed output value enumerated.
 
 ## In progress
 
-- [ ] Stage 2: response cache and replay
+- [ ] Stage 3: prompt layer
 
 ## Blocked
 
@@ -21,6 +21,7 @@ Stage 2: build `code/cache.py`, a response cache and replay layer keyed by input
 
 ## Done
 
+- [x] Stage 2: response cache and replay (`code/cache.py`). SHA-256 keyed, one JSON file per entry in `cache/`, get/put pass self-test.
 - [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
 
 ---

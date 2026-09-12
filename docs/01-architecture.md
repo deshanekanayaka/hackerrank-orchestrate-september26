@@ -41,14 +41,13 @@ flowchart TD
     end
 
     subgraph cache["cache/ — gitignored"]
-        F1[image_ocr_cache.json\nkeyed by image_id and file hash]
-        F2[message_parse_cache.json\nkeyed by message_id and text hash]
+        F1["cache.py: get/put\nkeyed by SHA-256 of input string\none JSON file per unique key"]
     end
 
     inputs --> stage1
     B1 --> B2 --> B3 --> B4
     B4 <-->|read/write| F1
-    B5 <-->|read/write| F2
+    B5 <-->|read/write| F1
     B4 --> B6
     B5 --> B6
     B6 --> stage2

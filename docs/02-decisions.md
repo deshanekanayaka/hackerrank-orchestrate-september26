@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 2: Cache implementation choices
+
+**Decision**: one JSON file per cache entry, named by SHA-256 hex digest of the key string, stored in `cache/`.
+**Rejected**: SQLite (adds a connection/lock layer for a single-writer workload), in-memory dict (lost on every run, defeating the replay purpose).
+**Risk**: a corrupt JSON file raises on `get`. The Stage 4 caller treats any exception as a miss and re-calls the model.
+**No TTL, no LRU**: the 24-hour run window makes expiry irrelevant. Entries are write-once per unique key.
+**Where**: `code/cache.py`
+
+---
+
 ### Stage 1: Loader implementation choices
 
 **Decision**: load all CSVs to string dtype first, then cast numerics and dates with `errors="coerce"`.
