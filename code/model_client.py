@@ -13,7 +13,7 @@ MODEL = "claude-haiku-4-5-20251001"
 
 MAX_CONCURRENT = 5  # max simultaneous API calls
 _SEMAPHORE = threading.Semaphore(MAX_CONCURRENT)
-_BACKOFF = (2, 4)  # seconds between attempts 1→2 and 2→3
+_BACKOFF = (2, 4)
 
 
 def call_with_retry(fn: Callable[[], Any], label: str) -> Any | None:

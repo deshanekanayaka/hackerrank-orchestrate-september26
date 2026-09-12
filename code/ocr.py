@@ -32,19 +32,6 @@ def _call(img_path: Path) -> ImageResult:
     return ImageResult(**json.loads(strip_fences(msg.content[0].text)))
 
 
-def _ocr_one(image_id: str, user_id: str, img_path: Path) -> tuple[str, str, ImageResult | None]:
-    """Return (image_id, user_id, result). Cache hit or model call."""
-    file_hash = hashlib.sha256(img_path.read_bytes()).hexdigest()
-    cache_key = f"ocr:{image_id}:{file_hash}"
-    cached = cache_get(cache_key)
-    if cached is not None:
-        return image_id, user_id, ImageResult(**cached)
-    result = call_with_retry(lambda p=img_path: _call(p), image_id)
-    if result is not None:
-        cache_put(cache_key, {"amount": result.amount, "currency": result.currency})
-    return image_id, user_id, result
-
-
 def run(
     images_df,
     evidence_complete: dict[str, bool],
@@ -52,6 +39,16 @@ def run(
     """OCR all images concurrently. Sets evidence_complete[user_id]=False on failure."""
     results: dict[str, ImageResult | None] = {}
     futures = {}
+
+    def _ocr(img_path: Path, image_id: str) -> ImageResult | None:
+        cache_key = f"ocr:{image_id}:{hashlib.sha256(img_path.read_bytes()).hexdigest()}"
+        cached = cache_get(cache_key)
+        if cached is not None:
+            return ImageResult(**cached)
+        result = call_with_retry(lambda p=img_path: _call(p), image_id)
+        if result is not None:
+            cache_put(cache_key, {"amount": result.amount, "currency": result.currency})
+        return result
 
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENT) as pool:
         for _, row in images_df.iterrows():
@@ -61,10 +58,11 @@ def run(
                 results[image_id] = None
                 evidence_complete[user_id] = False
                 continue
-            futures[pool.submit(_ocr_one, image_id, user_id, img_path)] = (image_id, user_id)
+            futures[pool.submit(_ocr, img_path, image_id)] = (image_id, user_id)
 
         for future in as_completed(futures):
-            image_id, user_id, result = future.result()
+            image_id, user_id = futures[future]
+            result = future.result()
             if result is None:
                 print(f"  [warn] ocr {image_id} — marking user {user_id} incomplete", file=sys.stderr)
                 evidence_complete[user_id] = False
