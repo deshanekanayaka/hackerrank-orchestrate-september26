@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 4: build `code/ocr.py` and `code/parse_messages.py`, the model call layer.
+Stage 5: build `code/forecast.py` and `code/decide.py`, the deterministic decision layer.
 
 ## In progress
 
-- [ ] Stage 4: model call (observations)
+- [ ] Stage 5: deterministic decision layer
 
 ## Blocked
 
@@ -21,6 +21,7 @@ Stage 4: build `code/ocr.py` and `code/parse_messages.py`, the model call layer.
 
 ## Done
 
+- [x] Stage 4: model call layer (`code/ocr.py`, `code/parse_messages.py`). Real Haiku calls on 2 images and 3 messages verified. Cache replay confirmed identical output.
 - [x] Stage 3: prompt layer (`code/prompts.py`). IMAGE_PROMPT, MESSAGE_PROMPT, ImageResult, MessageResult dataclasses. All checks pass.
 - [x] Stage 2: response cache and replay (`code/cache.py`). SHA-256 keyed, one JSON file per entry in `cache/`, get/put pass self-test.
 - [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
