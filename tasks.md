@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 5: build `code/forecast.py` and `code/decide.py`, the deterministic decision layer.
+Stage 6: build `code/evaluate.py`, per-field exact-match accuracy against `dataset/sample_requests.csv`.
 
 ## In progress
 
-- [ ] Stage 5: deterministic decision layer
+- [ ] Stage 6: evaluation script
 
 ## Blocked
 
@@ -21,7 +21,8 @@ Stage 5: build `code/forecast.py` and `code/decide.py`, the deterministic decisi
 
 ## Done
 
-- [x] Stage 4: model call layer (`code/ocr.py`, `code/parse_messages.py`). Real Haiku calls on 2 images and 3 messages verified. Cache replay confirmed identical output.
+- [x] Stage 5: deterministic decision layer (`code/forecast.py`, `code/decide.py`). Accuracy: affordability_status 19/25 (76%), recommended_payment_method 21/25 (84%), earliest_date_for_full_payment 18/25 (72%).
+- [x] Stage 4: model call layer (`code/ocr.py`, `code/parse_messages.py`). Real Haiku calls on 2 images and 3 messages verified. Cache replay produced identical output.
 - [x] Stage 3: prompt layer (`code/prompts.py`). IMAGE_PROMPT, MESSAGE_PROMPT, ImageResult, MessageResult dataclasses. All checks pass.
 - [x] Stage 2: response cache and replay (`code/cache.py`). SHA-256 keyed, one JSON file per entry in `cache/`, get/put pass self-test.
 - [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
@@ -60,8 +61,8 @@ Stage 5: build `code/forecast.py` and `code/decide.py`, the deterministic decisi
 - [x] 1 loader and input validation
 - [x] 2 response cache and replay
 - [x] 3 prompt layer with allowed values enumerated
-- [ ] 4 model call returning observations only
-- [ ] 5 deterministic decision layer
+- [x] 4 model call returning observations only
+- [x] 5 deterministic decision layer
 - [ ] 6 evaluation script, per-field accuracy
 - [ ] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [ ] 8 evidence verification (if output cites sources)
