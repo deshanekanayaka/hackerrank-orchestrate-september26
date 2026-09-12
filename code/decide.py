@@ -22,9 +22,6 @@ class DecisionRow:
     spending_changes_needed: str
     decision_explanation: str
 
-    def to_dict(self) -> dict:
-        return asdict(self)
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -57,17 +54,6 @@ def _max_installment_months(profile_row) -> Optional[int]:
 def _pipe_set(raw) -> set[str]:
     return set(str(raw).split('|')) if raw and str(raw).strip() else set()
 
-
-def _check_installments(
-    forecast: UserForecast, payment_dates: list[date], pay_amount: float
-) -> bool:
-    """Check that installment payments keep balance >= min_balance for 90 days."""
-    end = forecast.request_date + timedelta(days=FORECAST_DAYS)
-    extra = [
-        CashFlow(d, -pay_amount, 'installment', 'installment')
-        for d in payment_dates if d <= end
-    ]
-    return forecast.check_safe_with_extra(extra)
 
 
 # ---------------------------------------------------------------------------
@@ -242,7 +228,7 @@ def _find_spending_changes(
             events_used=forecast.events_used,
             evidence_complete=forecast.evidence_complete,
         )
-        earliest = modified.earliest_full_payment_date(requested_amount)
+        earliest = modified.earliest_full_payment_date(requested_amount, horizon=desired_completion)
         if earliest is not None and earliest <= desired_completion:
             return change_strings, modified
 
@@ -299,7 +285,7 @@ def _decide_one(
         )
 
     amount_safe = forecast.amount_safe_to_pay(requested_amount)
-    earliest_full = forecast.earliest_full_payment_date(requested_amount)
+    earliest_full = forecast.earliest_full_payment_date(requested_amount, horizon=desired_completion)
     earliest_full_str = earliest_full.isoformat() if earliest_full else ''
 
     req_opts = options_df[options_df['request_id'] == request_id].copy()
@@ -353,7 +339,8 @@ def _decide_one(
             pay_dates = [first_d + timedelta(days=freq * i) for i in range(n)]
             if pay_dates[-1] > desired_completion:
                 continue
-            if not _check_installments(forecast, pay_dates, pay_amount):
+            _extra = [CashFlow(d, -pay_amount, 'installment', 'installment') for d in pay_dates if d <= desired_completion]
+            if not forecast.check_safe_with_extra(_extra, horizon=desired_completion):
                 continue
 
             # Skip this installment option if a cheaper no-fee plan is also viable
@@ -408,8 +395,8 @@ def _decide_one(
     changes, modified = _find_spending_changes(
         forecast, user_events, profile_row, requested_amount, desired_completion
     )
-    if changes and modified is not None:
-        earliest_mod = modified.earliest_full_payment_date(requested_amount)
+    if changes and modified is not None and 'full_payment' in accepted:
+        earliest_mod = modified.earliest_full_payment_date(requested_amount, horizon=desired_completion)
         if earliest_mod is not None:
             plan = f"{earliest_mod.isoformat()}:{_fmt_amount(requested_amount)}"
             changes_str = '|'.join(changes)
@@ -528,7 +515,7 @@ def decide_all(inputs: Inputs, forecasts: dict[str, UserForecast]) -> list[dict]
         user_events = inputs.events[inputs.events['user_id'] == user_id]
 
         decision = _decide_one(req_row, inputs.options, forecast, profile_row, user_events)
-        validated = _validate_row(decision.to_dict(), req_row['request_id'])
+        validated = _validate_row(asdict(decision), req_row['request_id'])
         rows.append(_verify_spending_changes(validated, user_id, inputs.events))
 
     return rows
@@ -553,9 +540,7 @@ if __name__ == '__main__':
 
     INPUT_COLS = ['request_id', 'user_id', 'request_date', 'request_type',
                   'requested_amount', 'desired_completion_date', 'allows_partial_payment', 'request_text']
-    sample_inp = inp._replace(requests=pd.read_csv(
-        DATASET / 'sample_requests.csv', dtype=str, keep_default_na=False
-    )[INPUT_COLS])
+    sample_inp = inp._replace(requests=sample[INPUT_COLS])
     forecasts = build_forecast(sample_inp, ocr_results={}, message_results={})
     rows = decide_all(sample_inp, forecasts)
     decisions = {r['request_id']: r for r in rows}
