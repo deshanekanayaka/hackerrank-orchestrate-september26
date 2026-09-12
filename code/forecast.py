@@ -228,17 +228,28 @@ def _infer_recurring(
         direction = grp['direction'].iloc[0]
         category = grp['category'].iloc[0]
 
-        grp_sorted = grp.sort_values('_sd')
+        grp_sorted = grp.sort_values('_sd').reset_index(drop=True)
 
-        # Filter out amount outliers: keep events within ±50% of the median amount
-        all_amounts = grp_sorted['amount'].dropna().astype(float).tolist()
-        if not all_amounts:
+        # Convert each event amount to home currency first so outlier filtering
+        # works correctly across mixed-currency groups.
+        conv_list: list[float] = []
+        valid_idx: list[int] = []
+        for i, row in grp_sorted.iterrows():
+            sd = row['_sd'].date() if hasattr(row['_sd'], 'date') else row['_sd']
+            c = _to_home(float(row['amount']), row['currency'], home_currency, sd, rates_lookup)
+            if c is not None:
+                conv_list.append(c)
+                valid_idx.append(i)
+        grp_sorted = grp_sorted.iloc[valid_idx].reset_index(drop=True)
+        if not conv_list:
             return []
-        med_amount = statistics.median(all_amounts)
-        if med_amount > 0:
-            grp_sorted = grp_sorted[
-                grp_sorted['amount'].astype(float).between(med_amount * 0.5, med_amount * 1.5)
-            ]
+
+        # Filter out amount outliers in home currency
+        med_converted = statistics.median(conv_list)
+        if med_converted > 0:
+            keep_idx = [i for i, c in enumerate(conv_list) if med_converted * 0.5 <= c <= med_converted * 1.5]
+            grp_sorted = grp_sorted.iloc[keep_idx].reset_index(drop=True)
+            conv_list = [conv_list[i] for i in keep_idx]
         if grp_sorted.empty:
             return []
 
@@ -256,28 +267,23 @@ def _infer_recurring(
             if len(filtered_idx) >= min_occ and len(filtered_idx) < len(date_list):
                 grp_sorted = grp_sorted.iloc[filtered_idx].reset_index(drop=True)
                 date_list = [date_list[i] for i in filtered_idx]
+                conv_list = [conv_list[i] for i in filtered_idx]
 
         interval = _detect_interval(date_list, min_count=min_occ)
         if interval is None:
             return []
 
-        # Use the most recent (non-outlier) amount for projection
         last_row = grp_sorted.iloc[-1]
-        amount = float(last_row['amount'])
-        currency = last_row['currency']
         last_date = date_list[-1]
-        converted = _to_home(amount, currency, home_currency, last_date, rates_lookup)
-        if converted is None:
-            return []
+        converted = conv_list[-1]
 
         existing = existing_by_cat.get(category, set())
         result: list[CashFlow] = []
-        # For monthly (30-day) intervals, snap to the same day-of-month to avoid drift
+        anchor_day = last_date.day  # preserved so February clamping doesn't drift subsequent months
         if interval == 30:
             month = last_date.month % 12 + 1
             year = last_date.year + (1 if last_date.month == 12 else 0)
-            day = min(last_date.day, calendar.monthrange(year, month)[1])
-            next_d = last_date.replace(year=year, month=month, day=day)
+            next_d = last_date.replace(year=year, month=month, day=min(anchor_day, calendar.monthrange(year, month)[1]))
         else:
             next_d = last_date + timedelta(days=interval)
         while next_d <= end:
@@ -291,12 +297,10 @@ def _infer_recurring(
                         event_id=f"recurring:{last_row['event_id']}",
                         label=f"recurring:{category}",
                     ))
-            # Advance: for monthly, stay on same day-of-month
             if interval == 30:
                 month = next_d.month % 12 + 1
                 year = next_d.year + (1 if next_d.month == 12 else 0)
-                day = min(next_d.day, calendar.monthrange(year, month)[1])
-                next_d = next_d.replace(year=year, month=month, day=day)
+                next_d = next_d.replace(year=year, month=month, day=min(anchor_day, calendar.monthrange(year, month)[1]))
             else:
                 next_d += timedelta(days=interval)
         return result
@@ -328,12 +332,13 @@ def build_forecast(
     message_results: dict,
     requests_override: Optional[pd.DataFrame] = None,
 ) -> dict[str, UserForecast]:
-    """Build a UserForecast for each user in inputs.requests (or requests_override)."""
+    """Build a UserForecast per request, keyed by request_id."""
     rates_lookup = _build_rate_lookup(inputs.rates)
     result: dict[str, UserForecast] = {}
     requests_df = requests_override if requests_override is not None else inputs.requests
 
     for _, req_row in requests_df.iterrows():
+        request_id = req_row['request_id']
         user_id = req_row['user_id']
         request_date_ts = req_row['request_date']
         request_date = request_date_ts.date() if hasattr(request_date_ts, 'date') else pd.Timestamp(request_date_ts).date()
@@ -396,7 +401,7 @@ def build_forecast(
         cash_flows.extend(recurring)
         cash_flows.sort(key=lambda cf: cf.on_date)
 
-        result[user_id] = UserForecast(
+        result[request_id] = UserForecast(
             user_id=user_id,
             request_date=request_date,
             start_balance=start_balance,
@@ -431,18 +436,21 @@ if __name__ == '__main__':
         sample_req[c] = pd.to_datetime(sample_req[c], errors='coerce')
 
     forecasts = build_forecast(inp, ocr_results={}, message_results={}, requests_override=sample_req)
-    print(f"Built forecasts for {len(forecasts)} users (sample)")
+    print(f"Built forecasts for {len(forecasts)} requests (sample)")
 
+    # forecasts now keyed by request_id; map user_id -> request_id for spot-checks
+    uid_to_rid = {row['user_id']: row['request_id'] for _, row in sample_req.iterrows()}
     CHECKS = [
         ('user_04', 12693000, 8401800, '2024-06-15'),
         ('user_01', 25256,    25256,   '2024-03-03'),
         ('user_03', 5491000,  873000,  '2019-11-15'),
     ]
     for uid, req_amt, exp_safe, exp_date in CHECKS:
-        if uid not in forecasts:
+        rid = uid_to_rid.get(uid)
+        if rid not in forecasts:
             print(f"  {uid}: NOT IN FORECASTS")
             continue
-        fc = forecasts[uid]
+        fc = forecasts[rid]
         safe = fc.amount_safe_to_pay(req_amt)
         earliest = fc.earliest_full_payment_date(req_amt)
         print(f"  {uid}: safe={safe:.0f} (exp {exp_safe})  earliest={earliest} (exp {exp_date})  flows={len(fc.cash_flows)}")

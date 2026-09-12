@@ -8,7 +8,7 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 **Decision**: decision priority order is full_payment_today, installments (if no no-fee plan exists), wait, partial, spending_changes, then not_affordable.
 **Income detection**: day-of-month clustering (modal day ±3) filters bonus payments before `_detect_interval`. This fixes income detection for users 11 and 13.
-**Cost guard**: if a no-fee plan reaches the deadline, installment options with `total_payable > requested_amount` are rejected.
+**Cost guard**: if a no-fee plan reaches the deadline, installment options with `total_payable > requested_amount * 1.001` are rejected.
 **Known gaps**: requests 08 and 10 need message amendments that have no `related_event_id`. Requests 11, 13, 21, and 22 have small forecast precision differences.
 **Accuracy**: affordability_status 19/25 (76%), recommended_payment_method 21/25 (84%), earliest_date_for_full_payment 18/25 (72%).
 **Where**: `code/forecast.py`, `code/decide.py`

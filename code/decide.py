@@ -215,14 +215,22 @@ def _find_spending_changes(
         if not change_strings:
             continue
 
-        # Build a modified forecast with these categories stopped
-        modified_flows = [
-            cf for cf in forecast.cash_flows
-            if not (
-                cf.label.startswith('recurring:') and
-                cf.label.split(':', 1)[1] in stop_labels
-            )
-        ]
+        # Build reduce_to scale factors (min_amount / current_amount) for reducible-only candidates
+        reduce_factors: dict[str, float] = {}
+        for ch in combo:
+            if not ch['can_stop'] and ch['can_reduce'] and ch['current_amount'] > 0:
+                reduce_factors[ch['category']] = ch['min_amount'] / ch['current_amount']
+
+        modified_flows = []
+        for cf in forecast.cash_flows:
+            if cf.label.startswith('recurring:'):
+                cat = cf.label.split(':', 1)[1]
+                if cat in stop_labels:
+                    continue
+                if cat in reduce_factors and cf.delta < 0:
+                    modified_flows.append(CashFlow(cf.on_date, cf.delta * reduce_factors[cat], cf.event_id, cf.label))
+                    continue
+            modified_flows.append(cf)
         modified = UserForecast(
             user_id=forecast.user_id,
             request_date=forecast.request_date,
@@ -403,7 +411,7 @@ def _decide_one(
 
     # --- 6. Not affordable ---
     note = ''
-    if earliest_full is not None:
+    if earliest_full is not None and earliest_full > desired_completion:
         note = f"Earliest safe date ({earliest_full.isoformat()}) is after the desired completion date."
     return DecisionRow(
         request_id=request_id,
@@ -426,7 +434,7 @@ def decide_all(inputs: Inputs, forecasts: dict[str, UserForecast]) -> list[dict]
     rows = []
     for _, req_row in inputs.requests.iterrows():
         user_id = req_row['user_id']
-        forecast = forecasts.get(user_id)
+        forecast = forecasts.get(req_row['request_id'])
         if forecast is None:
             # Should not happen if load_all ran cleanly; produce a safe default
             rows.append({

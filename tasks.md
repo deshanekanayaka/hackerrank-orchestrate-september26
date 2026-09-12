@@ -61,8 +61,8 @@ Stage 6: build `code/evaluate.py`, per-field exact-match accuracy against `datas
 - [x] 1 loader and input validation
 - [x] 2 response cache and replay
 - [x] 3 prompt layer with allowed values enumerated
-- [ ] 4 model call returning observations only
-- [ ] 5 deterministic decision layer
+- [x] 4 model call returning observations only
+- [x] 5 deterministic decision layer
 - [ ] 6 evaluation script, per-field accuracy
 - [ ] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [ ] 8 evidence verification (if output cites sources)
