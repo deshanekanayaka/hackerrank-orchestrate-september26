@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 9: adversarial input detectors. Scan request_text for embedded instructions before any forecast or decision runs.
+Stage 10: concurrency cap and backoff on every batch of model calls.
 
 ## In progress
 
-- [ ] Stage 9: adversarial input detectors
+- [ ] Stage 10: concurrency cap and backoff
 
 ## Blocked
 
@@ -66,7 +66,7 @@ Stage 9: adversarial input detectors. Scan request_text for embedded instruction
 - [x] 6 evaluation script, per-field accuracy
 - [x] 7 guardrails: schema, whitelist, retry, overrides, abstain
 - [x] 8 evidence verification (if output cites sources)
-- [ ] 9 adversarial input detectors
+- [x] 9 adversarial input detectors
 - [ ] 10 concurrency cap and backoff
 - [ ] Two consecutive runs produce identical output
 - [ ] Iteration 1 measured, logged
