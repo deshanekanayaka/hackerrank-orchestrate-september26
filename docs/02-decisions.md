@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 4: Model call layer implementation choices
+
+**Decision**: `strip_fences` lives in `prompts.py` and is imported by both `ocr.py` and `parse_messages.py`, avoiding duplication.
+**Rejected**: separate file (one more name to track for a 6-line function).
+**Risk**: synchronous calls. A rate-limit error kills the run until Stage 10 adds backoff.
+**Note**: image failure sets `evidence_complete[user_id] = False`. Message failure logs and skips (not fatal).
+**Where**: `code/ocr.py`, `code/parse_messages.py`, `code/prompts.py`
+
+---
+
 ### Stage 3: Prompt layer implementation choices
 
 **Decision**: prompt strings and response dataclasses live together in `code/prompts.py`. Every allowed intent value is listed verbatim in the prompt text.

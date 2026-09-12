@@ -33,6 +33,10 @@ Message:
 {message_text}"""
 
 
+def strip_fences(text: str) -> str:
+    return text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+
+
 @dataclass
 class ImageResult:
     amount: float
