@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 6: Evaluation script implementation choices
+
+**Decision**: `evaluate.py` runs the full pipeline on `sample_requests.csv` and compares all seven scored fields.
+**Amount tolerance**: ±1% numeric tolerance on `amount_safe_to_pay` because floating-point formatting varies between gold and predictions.
+**decision_explanation**: scores 0% by design. Gold text is free-form. Our code-generated text follows a fixed template and will never match exactly.
+**Baseline accuracy**: `affordability_status` 18/25 (72%), `recommended_payment_method` 20/25 (80%), `payment_plan` 17/25 (68%), `earliest_date_for_full_payment` 17/25 (68%).
+**Where**: `code/evaluate.py`, `code/load_inputs.py` (added `requests_path` parameter to `load_all`)
+
+---
+
 ### Stage 5: Forecast and decision layer implementation choices
 
 **Decision**: decision priority order is full_payment_today, installments (if no no-fee plan exists), wait, partial, spending_changes, then not_affordable.
