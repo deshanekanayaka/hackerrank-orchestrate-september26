@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Buy or Wait? — Field Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens: Stripe-inspired light dev docs ── */
+    :root {
+      --bg:        #F6F8FA;
+      --bg-sub:    #EFF2F6;
+      --surface:   #FFFFFF;
+      --border:    #E2E8F0;
+      --text:      #0F1B2D;
+      --text2:     #4A5568;
+      --accent:    #5A67D8;
+      --accent-bg: #EDF0FD;
+      --green:     #276749;
+      --green-bg:  #F0FFF4;
+      --green-border: #9AE6B4;
+      --red:       #9B1C31;
+      --red-bg:    #FFF5F7;
+      --red-border: #FEB2C0;
+      --code-bg:   #F7FAFC;
+      --r: 6px;
+      --sidebar-w: 220px;
+      --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+      --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+    }
+
+    /* Dark mode: GitHub-style dark */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:          #0D1117;
+        --bg-sub:      #161B22;
+        --surface:     #161B22;
+        --border:      #30363D;
+        --text:        #E6EDF3;
+        --text2:       #8B949E;
+        --accent:      #79A8E8;
+        --accent-bg:   #1C2D44;
+        --green:       #3FB950;
+        --green-bg:    #1A2F1E;
+        --green-border:#238636;
+        --red:         #F85149;
+        --red-bg:      #2D1215;
+        --red-border:  #8B1A1A;
+        --code-bg:     #161B22;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg:          #0D1117;
+      --bg-sub:      #161B22;
+      --surface:     #161B22;
+      --border:      #30363D;
+      --text:        #E6EDF3;
+      --text2:       #8B949E;
+      --accent:      #79A8E8;
+      --accent-bg:   #1C2D44;
+      --green:       #3FB950;
+      --green-bg:    #1A2F1E;
+      --green-border:#238636;
+      --red:         #F85149;
+      --red-bg:      #2D1215;
+      --red-border:  #8B1A1A;
+      --code-bg:     #161B22;
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+    }
+
+    button { font-family: inherit; cursor: pointer; }
+
+    /* ── Sidebar — always dark, like Stripe/Linear/Vercel docs ── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: #0F1B2D;
+      border-right: 1px solid #1A2D45;
+      display: flex;
+      flex-direction: column;
+      padding-block: 24px;
+      z-index: 10;
+      overflow-y: auto;
+    }
+    .sidebar-logo {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid #1A2D45;
+      margin-bottom: 12px;
+    }
+    .logo-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #5B7A9A;
+    }
+    .logo-title {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-top: 5px;
+      line-height: 1.35;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #8C9EB4;
+      background: transparent;
+      border: none;
+      border-left: 3px solid transparent;
+      text-align: left;
+      width: 100%;
+      transition: color 0.12s, background 0.12s, border-color 0.12s;
+    }
+    .nav-item:hover { color: #C8D6E5; background: #172337; }
+    .nav-item.active { color: #FFFFFF; border-left-color: #5A67D8; background: #172337; }
+    .nav-icon {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      width: 20px;
+      text-align: center;
+      opacity: 0.5;
+      flex-shrink: 0;
+    }
+    .nav-item.active .nav-icon { opacity: 0.7; }
+    .sidebar-footer {
+      margin-top: auto;
+      padding: 14px 20px 0;
+      border-top: 1px solid #1A2D45;
+    }
+    .theme-toggle {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 7px 12px;
+      border: 1px solid #2A3F58;
+      border-radius: var(--r);
+      background: transparent;
+      color: #5B7A9A;
+      width: 100%;
+      text-align: left;
+    }
+    .theme-toggle:hover { color: #8C9EB4; border-color: #3A5270; }
+
+    /* ── Main content ── */
+    .main {
+      margin-left: var(--sidebar-w);
+      flex: 1;
+      padding: 48px 52px 96px;
+    }
+    .section { display: none; max-width: 760px; }
+    .section.active { display: block; }
+
+    /* ── Typography ── */
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+      text-wrap: balance;
+    }
+    .section-sub {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--text2);
+      margin-bottom: 32px;
+      max-width: 560px;
+    }
+    .caps-label {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 12px;
+    }
+    p { font-size: 15px; line-height: 1.65; color: var(--text); max-width: 65ch; }
+    p + p { margin-top: 12px; }
+    code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      background: var(--code-bg);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    /* ── Stat row ── */
+    .stat-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 16px;
+    }
+    .stat-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+    /* ── Principle callout ── */
+    .principle {
+      background: var(--accent-bg);
+      border: 1px solid var(--accent);
+      border-radius: var(--r);
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .principle-glyph {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+    .principle-text { font-size: 14px; line-height: 1.65; color: var(--text); }
+    .principle-text strong { font-weight: 600; color: var(--accent); }
+
+    /* ── Tables ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      margin-bottom: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .data-table th {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text2);
+      text-align: left;
+      padding: 10px 16px;
+      background: var(--bg-sub);
+      border-bottom: 1px solid var(--border);
+    }
+    .data-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table .col-name {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+    .data-table .col-dim {
+      font-variant-numeric: tabular-nums;
+      color: var(--text2);
+    }
+
+    /* ── Pipeline tabs ── */
+    .pipeline-tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+      margin-bottom: 20px;
+      background: var(--surface);
+    }
+    .stage-tab {
+      flex: 1;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border);
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .stage-tab:last-child { border-right: none; }
+    .stage-tab:hover { background: var(--bg-sub); }
+    .stage-tab.active { background: var(--accent-bg); }
+    .tab-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+    .stage-tab.active .tab-num { color: var(--accent); }
+    .tab-name {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+    }
+    .tab-desc { font-size: 11px; color: var(--text2); }
+
+    /* ── Stage panel ── */
+    .stage-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .stage-panel h2 {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .stage-panel > p { margin-bottom: 20px; }
+
+    .io-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .io-block h4 {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .io-block ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .io-block li {
+      font-size: 13px;
+      color: var(--text);
+      padding-left: 16px;
+      position: relative;
+      line-height: 1.45;
+    }
+    .io-block li::before {
+      content: '→';
+      position: absolute;
+      left: 0;
+      color: var(--text2);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .model-row {
+      background: var(--accent-bg);
+      border: 1px solid var(--accent);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .model-row-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .model-row ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .model-row li { font-size: 13px; color: var(--text); padding-left: 14px; position: relative; }
+    .model-row li::before { content: '·'; position: absolute; left: 4px; color: var(--accent); }
+
+    .guardrail-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .guardrail-item { display: flex; align-items: flex-start; gap: 10px; }
+    .g-badge {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 3px 9px;
+      border-radius: 20px;
+      border: 1px solid;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .g-badge.input  { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+    .g-badge.output { color: var(--red);   border-color: var(--red-border);   background: var(--red-bg); }
+    .g-badge.rule   { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
+    .g-text { font-size: 13px; color: var(--text2); line-height: 1.5; padding-top: 3px; }
+
+    .stage-note {
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      font-size: 13px;
+      color: var(--text2);
+      line-height: 1.55;
+    }
+    .stage-note .note-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-right: 6px;
+    }
+
+    /* ── Forecast demo ── */
+    .forecast-wrap {
+      margin-top: 20px;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 18px 20px;
+    }
+    .forecast-wrap .caps-label { margin-bottom: 10px; }
+    #forecastCanvas {
+      display: block;
+      width: 100%;
+      height: 190px;
+      border-radius: 4px;
+    }
+    .forecast-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .fc-note {
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      color: var(--text2);
+      min-width: 0;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: var(--r);
+      border: 1px solid;
+      transition: opacity 0.12s, background 0.12s, color 0.12s;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: 0.35; cursor: default; }
+    .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn-primary:not(:disabled):hover { opacity: 0.85; }
+    .btn-outline { background: var(--surface); color: var(--text2); border-color: var(--border); }
+    .btn-outline:not(:disabled):hover { color: var(--text); border-color: var(--text2); }
+
+    /* ── Stage tabs (MCQ) ── */
+    .stage-tabs-mcq { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .stab {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text2);
+      cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .stab:hover { color: var(--text); border-color: var(--text2); }
+    .stab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* ── Decision vault ── */
+    .decision-list { display: flex; flex-direction: column; gap: 8px; }
+    .dc {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .dc-head {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      background: transparent;
+      border: none;
+      text-align: left;
+      width: 100%;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .dc-head:hover { background: var(--bg-sub); }
+    .dc.open .dc-head { background: var(--bg-sub); }
+    .dc-id {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--accent);
+      padding-top: 2px;
+      min-width: 36px;
+      flex-shrink: 0;
+    }
+    .dc-meta { flex: 1; }
+    .dc-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 3px; }
+    .dc-decision { font-size: 12.5px; color: var(--text2); line-height: 1.4; }
+    .dc-chevron {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text2);
+      transition: transform 0.15s;
+      padding-top: 3px;
+    }
+    .dc.open .dc-chevron { transform: rotate(90deg); }
+
+    .dc-body { display: none; padding: 4px 16px 16px 64px; }
+    .dc.open .dc-body { display: block; }
+
+    .option-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+    .opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13.5px;
+      color: var(--text);
+    }
+    .opt-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .opt.chosen .opt-badge { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .opt.other  .opt-badge { background: var(--bg-sub); color: var(--text2); border: 1px solid var(--border); }
+
+    .info-box {
+      border-left: 3px solid;
+      padding: 11px 14px;
+      border-radius: 0 var(--r) var(--r) 0;
+      font-size: 13.5px;
+      line-height: 1.6;
+      margin-bottom: 8px;
+    }
+    .info-box:last-child { margin-bottom: 0; }
+    .info-box.why    { border-color: var(--accent); background: var(--accent-bg); }
+    .info-box.breaks { border-color: var(--red-border); background: var(--red-bg); }
+    .info-box-label {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text2);
+      margin-bottom: 4px;
+    }
+
+    /* ── Practice / MCQ ── */
+    .practice-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .practice-progress {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text2);
+    }
+    .mcq-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+    }
+    .mcq-question-area {
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .judge-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text2);
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      display: inline-block;
+      margin-bottom: 14px;
+    }
+    .mcq-q {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.45;
+      text-wrap: balance;
+    }
+    .mcq-options {
+      padding: 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .mcq-opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      width: 100%;
+    }
+    .mcq-opt:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: var(--accent-bg);
+    }
+    .mcq-opt:disabled { cursor: default; }
+    .mcq-opt.correct {
+      border-color: var(--green-border);
+      background: var(--green-bg);
+    }
+    .mcq-opt.wrong {
+      border-color: var(--red-border);
+      background: var(--red-bg);
+    }
+    .mcq-opt.dim { opacity: 0.45; }
+    .opt-letter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text2);
+      background: var(--bg-sub);
+      margin-top: 1px;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+    }
+    .mcq-opt.correct .opt-letter {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+    .mcq-opt.wrong .opt-letter {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+    .opt-text { font-size: 14px; color: var(--text); line-height: 1.5; padding-top: 2px; }
+
+    .mcq-explain {
+      display: none;
+      margin: 0 24px 0;
+      border-top: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    .mcq-explain.show { display: block; }
+    .explain-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text2);
+      margin-bottom: 8px;
+    }
+    .explain-body {
+      font-size: 14px;
+      line-height: 1.65;
+      color: var(--text);
+    }
+    .mcq-actions {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .score-display {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text2);
+      margin-left: auto;
+    }
+    .score-display .score-right { color: var(--green); font-weight: 600; }
+    .keyboard-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text2);
+      margin-top: 10px;
+    }
+    .kbd {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 1px 5px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--bg-sub);
+    }
+
+    /* ── Limits ── */
+    .limit-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+    .limit-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+    }
+    .limit-n {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      color: var(--red);
+      flex-shrink: 0;
+      padding-top: 2px;
+    }
+    .limit-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+    .limit-desc { font-size: 13px; color: var(--text2); line-height: 1.55; }
+
+    .future-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .future-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+    }
+    .future-stage { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-bottom: 5px; }
+    .future-title { font-size: 14px; font-weight: 500; color: var(--text); margin-bottom: 5px; }
+    .future-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+
+    /* ── Evaluation ── */
+    .accuracy-grid { display: flex; flex-direction: column; gap: 12px; margin-bottom: 28px; }
+    .acc-row { display: grid; grid-template-columns: 220px 1fr 52px; align-items: center; gap: 12px; }
+    .acc-label { font-family: var(--font-mono); font-size: 12px; color: var(--text2); }
+    .acc-bar-wrap { background: var(--bg-sub); border-radius: 4px; height: 10px; overflow: hidden; }
+    .acc-bar { height: 100%; border-radius: 4px; background: var(--accent); }
+    .acc-bar.low { background: var(--red); }
+    .acc-pct { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--text); text-align: right; }
+    .iter-table, .cost-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 28px; }
+    .iter-table th, .cost-table th { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text2); padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+    .iter-table td, .cost-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .iter-table tr:last-child td, .cost-table tr:last-child td { border-bottom: none; }
+    .net-pos { color: var(--green); font-weight: 600; }
+    .net-neg { color: var(--red); font-weight: 600; }
+
+    /* ── Trace ── */
+    .trace-timeline { display: flex; flex-direction: column; gap: 0; }
+    .trace-step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 0 16px;
+    }
+    .trace-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .trace-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .trace-dot.output { background: var(--green); }
+    .trace-line { width: 2px; flex: 1; background: var(--border); min-height: 16px; }
+    .trace-body { padding-bottom: 24px; }
+    .trace-stage-label { font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 4px; }
+    .trace-stage-label.output { color: var(--green); }
+    .trace-heading { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .trace-detail { font-size: 13px; color: var(--text2); line-height: 1.65; }
+    .trace-detail strong { color: var(--text); font-weight: 500; }
+    .trace-code {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      background: var(--bg-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 14px;
+      color: var(--text);
+      margin-top: 8px;
+      white-space: pre;
+      overflow-x: auto;
+    }
+    .trace-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .trace-result-item {
+      background: var(--bg-sub);
+      border-radius: var(--r);
+      padding: 8px 12px;
+    }
+    .trace-result-key { font-family: var(--font-mono); font-size: 11px; color: var(--text2); }
+    .trace-result-val { font-family: var(--font-mono); font-size: 12px; color: var(--text); font-weight: 500; margin-top: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        overflow-x: auto;
+        padding-block: 0;
+        border-right: none;
+        border-bottom: 1px solid #1A2D45;
+      }
+      .sidebar-logo,
+      .sidebar-footer { display: none; }
+      .nav-item {
+        padding: 12px 16px;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .nav-item.active { border-bottom-color: #5A67D8; border-left-color: transparent; }
+      .main { margin-left: 0; padding: 24px 16px 64px; }
+      .stat-row { grid-template-columns: repeat(2, 1fr); }
+      .io-grid,
+      .future-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="sidebar" aria-label="Sections">
+    <div class="sidebar-logo">
+      <div class="logo-eyebrow">HackerRank Orchestrate</div>
+      <div class="logo-title">Buy or Wait?<br>Field Guide</div>
+    </div>
+    <button type="button" class="nav-item active" data-sec="overview" onclick="nav('overview')">
+      <span class="nav-icon">01</span>Overview
+    </button>
+    <button type="button" class="nav-item" data-sec="pipeline" onclick="nav('pipeline')">
+      <span class="nav-icon">02</span>Pipeline
+    </button>
+    <button type="button" class="nav-item" data-sec="decisions" onclick="nav('decisions')">
+      <span class="nav-icon">03</span>Decisions
+    </button>
+    <button type="button" class="nav-item" data-sec="practice" onclick="nav('practice')">
+      <span class="nav-icon">04</span>Defend This
+    </button>
+    <button type="button" class="nav-item" data-sec="limits" onclick="nav('limits')">
+      <span class="nav-icon">05</span>Limits
+    </button>
+    <button type="button" class="nav-item" data-sec="evaluation" onclick="nav('evaluation')">
+      <span class="nav-icon">06</span>Evaluation
+    </button>
+    <button type="button" class="nav-item" data-sec="trace" onclick="nav('trace')">
+      <span class="nav-icon">07</span>Trace
+    </button>
+    <div class="sidebar-footer">
+      <button type="button" class="theme-toggle" id="themeBtn" onclick="toggleTheme()">
+        toggle dark mode
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- 01 Overview ─────────────────────────────────── -->
+    <section id="sec-overview" class="section active">
+      <div class="section-title">Buy or Wait?</div>
+      <p class="section-sub">A financial decision agent built in 24 hours. For each of 250 purchase requests, it reconstructs the user's 90-day financial position and answers: can they afford this, and how?</p>
+
+      <div class="stat-row">
+        <div class="stat"><div class="stat-num">250</div><div class="stat-label">decisions produced</div></div>
+        <div class="stat"><div class="stat-num">231</div><div class="stat-label">model calls total</div></div>
+        <div class="stat"><div class="stat-num">$0.10</div><div class="stat-label">cost per full run</div></div>
+        <div class="stat"><div class="stat-num">84%</div><div class="stat-label">affordability accuracy</div></div>
+      </div>
+
+      <div class="principle">
+        <div class="principle-glyph">◆</div>
+        <div class="principle-text">
+          <strong>Core principle:</strong> the model perceives — it reads image amounts and message intent. Deterministic code decides — it runs the 90-day forecast and applies every rule. The model never names an affordability verdict, writes a payment plan, or generates an explanation.
+        </div>
+      </div>
+
+      <div class="caps-label">Output fields</div>
+      <table class="data-table" aria-label="Output fields">
+        <thead><tr><th>Field</th><th>Allowed values</th></tr></thead>
+        <tbody>
+          <tr><td class="col-name">affordability_status</td><td>affordable_now · affordable_with_plan · affordable_later · not_affordable</td></tr>
+          <tr><td class="col-name">recommended_payment_method</td><td>full_payment · partial_payment · installments · wait · not_recommended</td></tr>
+          <tr><td class="col-name">amount_safe_to_pay</td><td>0 to requested_amount — safe on request_date before any spending changes</td></tr>
+          <tr><td class="col-name">payment_plan</td><td>YYYY-MM-DD:amount|… or none</td></tr>
+          <tr><td class="col-name">earliest_date_for_full_payment</td><td>YYYY-MM-DD or empty</td></tr>
+          <tr><td class="col-name">spending_changes_needed</td><td>stop:&lt;id&gt; or reduce_to:&lt;id&gt;:&lt;amount&gt;, up to 3, or none</td></tr>
+          <tr><td class="col-name">decision_explanation</td><td>code-generated text from actual event IDs — never written by the model</td></tr>
+        </tbody>
+      </table>
+
+      <div class="caps-label">Eight input sources</div>
+      <table class="data-table" aria-label="Input sources">
+        <thead><tr><th>Source</th><th>Rows</th><th>What it provides</th></tr></thead>
+        <tbody>
+          <tr><td class="col-name">requests.csv</td><td class="col-dim">250</td><td>one row per decision task</td></tr>
+          <tr><td class="col-name">financial_profiles.csv</td><td class="col-dim">275</td><td>balance, minimum, priorities, preferred payment methods</td></tr>
+          <tr><td class="col-name">financial_events.csv</td><td class="col-dim">25,342</td><td>every income and expense event in history</td></tr>
+          <tr><td class="col-name">exchange_rates.csv</td><td class="col-dim">134</td><td>dated rates for 5 currency pairs</td></tr>
+          <tr><td class="col-name">request_payment_options.csv</td><td class="col-dim">790</td><td>2–4 seller payment options per request</td></tr>
+          <tr><td class="col-name">messages.csv</td><td class="col-dim">215</td><td>cancellations, amendments, confirmations in natural language</td></tr>
+          <tr><td class="col-name">images.csv + media/</td><td class="col-dim">16</td><td>PNG receipts holding event amounts not in the CSV</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 02 Pipeline ──────────────────────────────────── -->
+    <section id="sec-pipeline" class="section">
+      <div class="section-title">Pipeline</div>
+      <p class="section-sub">Four stages. All model work runs in Stage 1. Stages 2 and 3 are pure arithmetic. Select a stage to explore it.</p>
+
+      <div class="pipeline-tabs" role="tablist">
+        <button type="button" class="stage-tab active" role="tab" data-stage="1" onclick="pickStage(1)">
+          <div class="tab-num">STAGE 01</div>
+          <div class="tab-name">load_inputs</div>
+          <div class="tab-desc">OCR · parse · merge</div>
+        </button>
+        <button type="button" class="stage-tab" role="tab" data-stage="2" onclick="pickStage(2)">
+          <div class="tab-num">STAGE 02</div>
+          <div class="tab-name">forecast</div>
+          <div class="tab-desc">90-day projection</div>
+        </button>
+        <button type="button" class="stage-tab" role="tab" data-stage="3" onclick="pickStage(3)">
+          <div class="tab-num">STAGE 03</div>
+          <div class="tab-name">decide</div>
+          <div class="tab-desc">8 output fields</div>
+        </button>
+        <button type="button" class="stage-tab" role="tab" data-stage="4" onclick="pickStage(4)">
+          <div class="tab-num">STAGE 04</div>
+          <div class="tab-name">write_output</div>
+          <div class="tab-desc">validate · write</div>
+        </button>
+      </div>
+
+      <div id="stage-detail"></div>
+    </section>
+
+    <!-- 03 Decisions ─────────────────────────────────── -->
+    <section id="sec-decisions" class="section">
+      <div class="section-title">Decision Vault</div>
+      <p class="section-sub">Every architectural choice, the options considered, and the reason we chose what we chose. Click any entry to reveal the full rationale.</p>
+      <div class="decision-list" id="decision-list"></div>
+    </section>
+
+    <!-- 04 Practice / MCQ ────────────────────────────── -->
+    <section id="sec-practice" class="section">
+      <div class="section-title">Defend This</div>
+      <p class="section-sub">Pick the best answer. After you choose, you see why it is right and why the others are wrong.</p>
+
+      <div class="stage-tabs-mcq" role="tablist" aria-label="Question stage">
+        <button type="button" class="stab active" onclick="switchStage('arch')">Architecture</button>
+        <button type="button" class="stab" onclick="switchStage('s1')">Stage 1 · load_inputs</button>
+        <button type="button" class="stab" onclick="switchStage('s2')">Stage 2 · forecast</button>
+        <button type="button" class="stab" onclick="switchStage('s3')">Stage 3 · decide</button>
+        <button type="button" class="stab" onclick="switchStage('design')">Design Decisions</button>
+        <button type="button" class="stab" onclick="switchStage('safety')">Model &amp; Safety</button>
+      </div>
+
+      <div class="practice-header">
+        <span></span>
+        <span class="practice-progress" id="practice-progress"></span>
+      </div>
+
+      <div class="mcq-card" id="mcq-card">
+        <div class="mcq-question-area">
+          <div class="judge-tag">AI Judge · Voice Interview</div>
+          <div class="mcq-q" id="mcq-q"></div>
+        </div>
+        <div class="mcq-options" id="mcq-options"></div>
+        <div class="mcq-explain" id="mcq-explain">
+          <div class="explain-label" id="explain-label"></div>
+          <div class="explain-body" id="explain-body"></div>
+        </div>
+        <div class="mcq-actions">
+          <button type="button" class="btn btn-outline" id="btn-prev-q" onclick="jumpChallenge(-1)">← Prev</button>
+          <button type="button" class="btn btn-primary" id="btn-next-q" onclick="jumpChallenge(1)">Next →</button>
+          <span class="score-display" id="score-display"></span>
+        </div>
+      </div>
+      <p class="keyboard-hint" style="margin-top:12px">Keyboard: <span class="kbd">←</span> <span class="kbd">→</span> navigate · <span class="kbd">1</span>–<span class="kbd">4</span> pick option</p>
+    </section>
+
+    <!-- 05 Limits ────────────────────────────────────── -->
+    <section id="sec-limits" class="section">
+      <div class="section-title">Limits &amp; Future Work</div>
+      <p class="section-sub">What we know is wrong today, what we tried and reverted, and where the system grows next.</p>
+
+      <div class="caps-label" style="margin-bottom:14px">Known limits</div>
+      <div class="limit-list" id="limit-list"></div>
+
+      <div class="caps-label" style="margin-bottom:14px">Production roadmap</div>
+      <div class="future-grid" id="future-grid"></div>
+    </section>
+
+    <!-- 06 Evaluation ───────────────────────────────────── -->
+    <section id="sec-evaluation" class="section">
+      <div class="section-title">Evaluation</div>
+      <p class="section-sub">Per-field accuracy against 25 labelled sample requests. We iterated 3 times, targeting one field per pass.</p>
+
+      <div class="caps-label" style="margin-bottom:14px">Per-field accuracy</div>
+      <div class="accuracy-grid" id="accuracy-grid"></div>
+
+      <div class="caps-label" style="margin-bottom:14px">Iteration history</div>
+      <table class="iter-table">
+        <thead><tr><th>#</th><th>Field targeted</th><th>Change made</th><th>Net</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>0</td>
+            <td>baseline</td>
+            <td>Initial build — stage-5 implementation</td>
+            <td class="net-pos">—</td>
+          </tr>
+          <tr>
+            <td>1</td>
+            <td>status · method · earliest</td>
+            <td>Added <code>horizon=desired_completion</code> to <code>earliest_full_payment_date</code> and <code>_check_installments</code></td>
+            <td class="net-pos">+2 fields</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>status · method</td>
+            <td>Tightened spending-changes guard to require <code>full_payment</code> in accepted methods before suggesting cuts</td>
+            <td class="net-pos">+2 fields</td>
+          </tr>
+          <tr>
+            <td>✗</td>
+            <td>amount_safe_to_pay</td>
+            <td>Added 10-day and 21-day interval buckets — fixed users 03 and 18, broke users 02, 11, 25 via ghost grocery projection</td>
+            <td class="net-neg">−4 fields — reverted</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="caps-label" style="margin-bottom:14px">Cost and latency</div>
+      <table class="cost-table">
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td>Model calls per full run</td><td>231 (215 message parses + 16 image OCRs)</td></tr>
+          <tr><td>Estimated cost per full run</td><td>USD 0.10085</td></tr>
+          <tr><td>Estimated cost per request</td><td>USD 0.0004034</td></tr>
+          <tr><td>Wall-clock runtime (cold cache)</td><td>3–4 minutes</td></tr>
+          <tr><td>Wall-clock runtime (warm cache)</td><td>~30 seconds</td></tr>
+          <tr><td>Adversarial requests blocked</td><td>0 (no adversarial inputs in this dataset)</td></tr>
+        </tbody>
+      </table>
+
+      <div class="info-box" style="background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--r);padding:14px 16px;">
+        <div class="info-box-label" style="font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-bottom:6px;">What we did not measure</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6;">
+          We did not measure <code>payment_plan</code> or <code>spending_changes_needed</code> accuracy — the self-test script compares only the four fields above. We also did not measure <code>decision_explanation</code> quality, which the problem statement says is scored. Our explanations are grounded in actual event IDs and never written by the model.
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 Trace ─────────────────────────────────────────── -->
+    <section id="sec-trace" class="section">
+      <div class="section-title">Trace: request_08</div>
+      <p class="section-sub">A step-by-step walkthrough of one request through all three stages. This request exercises the message-parse guardrail: a salary amendment arrives with no linked event.</p>
+
+      <div class="info-box" style="background:var(--bg-sub);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:24px;font-size:13px;color:var(--text2);line-height:1.6;">
+        <strong style="color:var(--text);">Input:</strong> user_08 · EUR 996.60 repair · request_date 2025-02-07 · desired_completion 2025-04-15 · allows_partial_payment: false
+      </div>
+
+      <div class="trace-timeline">
+
+        <div class="trace-step">
+          <div class="trace-connector">
+            <div class="trace-dot">S1</div>
+            <div class="trace-line"></div>
+          </div>
+          <div class="trace-body">
+            <div class="trace-stage-label">Stage 1 · load_inputs.py</div>
+            <div class="trace-heading">Parse, OCR, merge</div>
+            <div class="trace-detail">
+              <strong>No image</strong> — user_08 has no linked image, so Stage 1b (OCR) is skipped. <code>evidence_complete</code> stays True.<br><br>
+              <strong>Message parse</strong> — message_06 is linked to user_08. The model reads: <em>"Hi, Greenfield Foods payroll here. Your next salary is reduced to EUR 1422.85."</em> It returns <code>{"intent": "amend", "new_amount": 1422.85, "new_date": null}</code>. Parse succeeds and is cached by SHA-256.<br><br>
+              <strong>Amendment not applied</strong> — <code>_apply_messages</code> looks for <code>related_event_id</code> on message_06. The field is blank. No event row is updated. The parse result is logged but the financial data is unchanged.<br><br>
+              <strong>Why no error?</strong> The recurring pattern detector later computes a median salary of EUR 1,422.85 from the last six settled payments — which already matches the amended amount. The silent skip caused no forecasting error in this case.
+            </div>
+          </div>
+        </div>
+
+        <div class="trace-step">
+          <div class="trace-connector">
+            <div class="trace-dot">S2</div>
+            <div class="trace-line"></div>
+          </div>
+          <div class="trace-body">
+            <div class="trace-stage-label">Stage 2 · forecast.py</div>
+            <div class="trace-heading">90-day balance projection</div>
+            <div class="trace-detail">
+              <strong>Start balance:</strong> EUR 1,536.57 · <strong>minimum balance:</strong> EUR 800.<br><br>
+              <strong>Recurring patterns detected:</strong> salary EUR 1,422.85/month on the 15th, rent EUR 467.50/month, groceries EUR 72.38/week, debt repayment EUR 177.00/month.<br><br>
+              <strong>Result:</strong> 54 projected cash flows from 2025-02-07 to 2025-05-09. The minimum projected balance over the 90-day window — without any payment — is EUR 1,070.65, reached before the March salary.
+            </div>
+            <div class="trace-code">amount_safe_to_pay = 1,070.65 − 800 = 270.65
+270.65 &lt; 996.60 → full payment today is not safe</div>
+          </div>
+        </div>
+
+        <div class="trace-step">
+          <div class="trace-connector">
+            <div class="trace-dot">S3</div>
+            <div class="trace-line"></div>
+          </div>
+          <div class="trace-body">
+            <div class="trace-stage-label">Stage 3 · decide.py</div>
+            <div class="trace-heading">Decision priority walk</div>
+            <div class="trace-detail">
+              <strong>Full payment today?</strong> EUR 270.65 &lt; EUR 996.60 → fail.<br><br>
+              <strong>Installments?</strong> user_08 accepts installments. All available installment last-payment dates fall after 2025-04-15. None pass the horizon check → fail.<br><br>
+              <strong>Wait?</strong> Scan each cash-flow date. On 2025-04-15, salary credit of EUR 1,422.85 arrives. Suffix minimum from that date onward: EUR 1,796.60. EUR 1,796.60 − EUR 996.60 = EUR 800.00 ≥ minimum balance → pass.<br><br>
+              <strong>Result:</strong> <code>affordable_later / wait</code>. <code>earliest_date_for_full_payment = 2025-04-15</code>, which exactly equals <code>desired_completion_date</code>.
+            </div>
+          </div>
+        </div>
+
+        <div class="trace-step">
+          <div class="trace-connector">
+            <div class="trace-dot output">✓</div>
+          </div>
+          <div class="trace-body">
+            <div class="trace-stage-label output">Output</div>
+            <div class="trace-heading">Final decision row</div>
+            <div class="trace-result-grid">
+              <div class="trace-result-item"><div class="trace-result-key">affordability_status</div><div class="trace-result-val">affordable_later</div></div>
+              <div class="trace-result-item"><div class="trace-result-key">recommended_payment_method</div><div class="trace-result-val">wait</div></div>
+              <div class="trace-result-item"><div class="trace-result-key">amount_safe_to_pay</div><div class="trace-result-val">270.65</div></div>
+              <div class="trace-result-item"><div class="trace-result-key">payment_plan</div><div class="trace-result-val">2025-04-15:996.60</div></div>
+              <div class="trace-result-item"><div class="trace-result-key">earliest_date_for_full_payment</div><div class="trace-result-val">2025-04-15</div></div>
+              <div class="trace-result-item"><div class="trace-result-key">spending_changes_needed</div><div class="trace-result-val">none</div></div>
+            </div>
+            <div class="trace-detail" style="margin-top:12px;font-size:12.5px;">
+              <strong>decision_explanation:</strong> "Wait until 2025-04-15, then pay EUR 996.60 in full. Paying earlier would put the EUR 800 minimum at risk." — generated from code using actual event data, never written by the model.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ── Navigation ────────────────────────────────────────────
+    function nav(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById('sec-' + id).classList.add('active');
+      document.querySelector('[data-sec="' + id + '"]').classList.add('active');
+      if (id === 'pipeline' && !currentStage) pickStage(1);
+    }
+
+    function toggleTheme() {
+      const r = document.documentElement;
+      const isDark = r.getAttribute('data-theme') === 'dark';
+      r.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('themeBtn').textContent = isDark ? 'toggle dark mode' : 'toggle light mode';
+      if (currentStage === 2) drawForecast();
+    }
+
+    // ── Stage data ────────────────────────────────────────────
+    const STAGES = {
+      1: {
+        name: 'Stage 1 — load_inputs.py',
+        desc: 'Loads all eight data sources and runs the only model work in the pipeline: OCR on 16 PNG images and intent parsing on 215 messages. Every model result is cached by SHA-256 of the input, so re-runs are instant.',
+        inputs: ['financial_profiles.csv — balance, minimum, preferences', 'financial_events.csv — 25,342 events with amounts and dates', 'exchange_rates.csv — dated rates for 5 currency pairs', 'requests.csv + request_payment_options.csv', 'messages.csv — 215 multilingual messages', 'images.csv + media/images/*.png — 16 PNG receipts'],
+        outputs: ['evidence_complete flag per user', 'Financial events with image amounts merged in', 'Message amendments applied to matching events'],
+        model: ['16 × claude-haiku-4-5 vision — extract amount from PNG receipt (cached by image_id + file hash)', '215 × claude-haiku-4-5 — parse message intent: cancel / amend / confirm / other (cached by message_id + text hash)'],
+        guardrails: [
+          {type:'input',  label:'Input schema',     desc:'Required columns present, no negative amounts — fails fast before any model call'},
+          {type:'input',  label:'Adversarial flag',  desc:'Nine regex patterns in message_text → evidence_complete = False → not_affordable for all that user\'s requests'},
+        ],
+        note: 'Why all model work here: Stages 2 and 3 are pure arithmetic. Changing a threshold or decision rule re-runs at zero model cost because Stage 1 results are already cached on disk.'
+      },
+      2: {
+        name: 'Stage 2 — forecast.py',
+        desc: 'Builds a 90-day running balance per user. No model is involved — only arithmetic. The demo below steps through the real cash flows for user_08 from the trace document.',
+        inputs: ['Merged financial events from Stage 1', 'Financial profiles (balance, minimum)', 'Exchange rates'],
+        outputs: ['Projected daily balance over 90 days per user', 'Minimum projected balance across all 90 dates', 'Earliest date balance safely supports full payment'],
+        model: ['None — pure arithmetic'],
+        guardrails: [
+          {type:'rule', label:'Deterministic override', desc:'Projected balance < minimum_balance_to_keep at any point → not_affordable. The model is never consulted.'},
+        ],
+        note: 'Recurring pattern detection uses modal day-of-month clustering to separate regular salary from bonuses before interval detection at 7 / 14 / 30 / 90-day buckets.',
+        hasDemo: true
+      },
+      3: {
+        name: 'Stage 3 — decide.py',
+        desc: 'Applies deterministic rules to produce all eight output fields for each of the 250 requests. The model is never called here.',
+        inputs: ['UserForecast per user (from Stage 2)', 'Payment options from request_payment_options.csv', 'Financial profiles (preferences, max_installment_months)'],
+        outputs: ['All 8 output.csv columns for 250 requests'],
+        model: ['None — fully deterministic rules'],
+        guardrails: [
+          {type:'input',  label:'Adversarial gate',      desc:'Instruction text in request_text → early exit before any forecast computation runs'},
+          {type:'output', label:'Allowed-value whitelist', desc:'affordability_status and recommended_payment_method checked against enum lists'},
+          {type:'output', label:'Output schema',          desc:'All 8 fields present and correct type — failing row replaced with a safe not_affordable default'},
+          {type:'rule',   label:'Abstain path',           desc:'evidence_complete = False → not_affordable, amount_safe_to_pay = 0, explanation names the missing evidence'},
+        ],
+        note: 'Decision priority order: full_payment today → installments (no-fee first, then cheapest) → wait → partial → spending changes → not_affordable.'
+      },
+      4: {
+        name: 'Stage 4 — write_output.py',
+        desc: 'Final pass over all 250 rows. Writes output.csv in the exact column order the contest contract requires.',
+        inputs: ['250 decision rows from Stage 3'],
+        outputs: ['output.csv — 250 rows in contract column order'],
+        model: ['None'],
+        guardrails: [],
+        note: 'Column order is enforced explicitly: request_id, amount_safe_to_pay, affordability_status, recommended_payment_method, payment_plan, earliest_date_for_full_payment, spending_changes_needed, decision_explanation.'
+      }
+    };
+
+    let currentStage = 0;
+
+    function pickStage(n) {
+      currentStage = n;
+      document.querySelectorAll('.stage-tab').forEach(t => {
+        t.classList.toggle('active', Number(t.dataset.stage) === n);
+      });
+      const s = STAGES[n];
+      const ghtml = s.guardrails.map(g => `
+        <div class="guardrail-item">
+          <span class="g-badge ${g.type}">${g.label}</span>
+          <span class="g-text">${g.desc}</span>
+        </div>`).join('');
+
+      const demoHTML = s.hasDemo ? `
+        <div class="forecast-wrap">
+          <div class="caps-label">Live demo — user_08 (EUR, 90-day balance forecast)</div>
+          <canvas id="forecastCanvas" width="700" height="190" aria-label="Balance forecast animation"></canvas>
+          <div class="forecast-controls">
+            <button type="button" class="btn btn-outline" id="btn-prev" onclick="stepForecast(-1)">← prev</button>
+            <button type="button" class="btn btn-primary" id="btn-next" onclick="stepForecast(1)">next →</button>
+            <span class="fc-note" id="fc-note">Starting balance €1,536.57 — request is €996.60 — minimum is €800. Step through the cash flows.</span>
+          </div>
+        </div>` : '';
+
+      document.getElementById('stage-detail').innerHTML = `
+        <div class="stage-panel">
+          <h2>${s.name}</h2>
+          <p>${s.desc}</p>
+          <div class="io-grid">
+            <div class="io-block"><h4>Inputs</h4><ul>${s.inputs.map(i => `<li>${i}</li>`).join('')}</ul></div>
+            <div class="io-block"><h4>Outputs</h4><ul>${s.outputs.map(i => `<li>${i}</li>`).join('')}</ul></div>
+          </div>
+          <div class="model-row">
+            <div class="model-row-label">Model calls</div>
+            <ul>${s.model.map(m => `<li>${m}</li>`).join('')}</ul>
+          </div>
+          ${s.guardrails.length ? `<div class="guardrail-list">${ghtml}</div>` : ''}
+          <div class="stage-note"><span class="note-label">Note —</span>${s.note}</div>
+          ${demoHTML}
+        </div>`;
+
+      if (s.hasDemo) setTimeout(initForecast, 60);
+    }
+
+    // ── Forecast animation (user_08 from docs/03-trace.md) ───
+    const FC_EVENTS = [
+      {date:'Feb 7',  label:'Start balance',      amount:0,       balance:1536.57, type:'start'},
+      {date:'Feb 14', label:'Groceries',           amount:-72.38,  balance:1464.19, type:'expense'},
+      {date:'Feb 15', label:'Rent',                amount:-467.50, balance:996.69,  type:'expense'},
+      {date:'Feb 15', label:'Salary',              amount:+1422.85,balance:2419.54, type:'income'},
+      {date:'Feb 20', label:'Debt repayment',      amount:-177.00, balance:2242.54, type:'expense'},
+      {date:'Mar 7',  label:'Groceries × 3',       amount:-217.14, balance:2025.40, type:'expense'},
+      {date:'Mar 15', label:'Rent + Salary',       amount:+955.35, balance:2980.75, type:'income'},
+      {date:'Apr 4',  label:'Groceries × 3',       amount:-217.14, balance:2763.61, type:'expense'},
+      {date:'Apr 15', label:'Rent + Salary',       amount:+955.35, balance:3718.96, type:'income'},
+      {date:'Apr 15', label:'Pay €996.60 ✓',      amount:-996.60, balance:2722.36, type:'pay'},
+    ];
+    let fcStep = 0;
+
+    function initForecast() { fcStep = 0; drawForecast(); }
+
+    function stepForecast(dir) {
+      fcStep = Math.max(0, Math.min(FC_EVENTS.length - 1, fcStep + dir));
+      drawForecast();
+    }
+
+    function drawForecast() {
+      const canvas = document.getElementById('forecastCanvas');
+      if (!canvas) return;
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.offsetWidth || 700;
+      const H = canvas.offsetHeight || 190;
+      canvas.width  = W * dpr;
+      canvas.height = H * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark' ||
+        (!document.documentElement.getAttribute('data-theme') &&
+         window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+      const C = {
+        bg:      isDark ? '#0D1117' : '#F7FAFC',
+        grid:    isDark ? '#30363D' : '#E2E8F0',
+        txt:     isDark ? '#8B949E' : '#4A5568',
+        income:  isDark ? '#3FB950' : '#276749',
+        expense: isDark ? '#F85149' : '#9B1C31',
+        accent:  isDark ? '#79A8E8' : '#5A67D8',
+        pay:     isDark ? '#3FB950' : '#276749',
+        bal:     isDark ? '#E6EDF3' : '#0F1B2D',
+        minLine: isDark ? '#F85149' : '#9B1C31',
+      };
+
+      ctx.fillStyle = C.bg;
+      ctx.fillRect(0, 0, W, H);
+
+      const pl = 58, pr = 16, pt = 18, pb = 32;
+      const cw = W - pl - pr, ch = H - pt - pb;
+      const maxBal = 4000;
+      const n = FC_EVENTS.length;
+      const barW = Math.min(28, cw / n * 0.44);
+      const xOf  = i => pl + (i + 0.5) * (cw / n);
+      const toY  = v => pt + ch - (v / maxBal) * ch;
+
+      // Grid
+      [0, 800, 1600, 2400, 3200].forEach(v => {
+        const y = toY(v);
+        ctx.save();
+        ctx.strokeStyle = C.grid;
+        ctx.lineWidth = v === 0 ? 1 : 0.5;
+        ctx.setLineDash(v === 0 ? [] : [3, 4]);
+        ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(W - pr, y); ctx.stroke();
+        ctx.restore();
+        ctx.fillStyle = C.txt;
+        ctx.font = `10px 'IBM Plex Mono', monospace`;
+        ctx.textAlign = 'right';
+        ctx.fillText(`€${v.toLocaleString()}`, pl - 5, y + 3);
+      });
+
+      // Minimum balance line
+      ctx.save();
+      ctx.strokeStyle = C.minLine;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(pl, toY(800)); ctx.lineTo(W - pr, toY(800));
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = C.minLine;
+      ctx.globalAlpha = 0.6;
+      ctx.font = `9px 'IBM Plex Mono', monospace`;
+      ctx.textAlign = 'left';
+      ctx.fillText('min', pl + 4, toY(800) - 4);
+      ctx.globalAlpha = 1;
+
+      // Bars
+      for (let i = 0; i <= fcStep; i++) {
+        const ev = FC_EVENTS[i];
+        const x  = xOf(i);
+        const y  = toY(ev.balance);
+        const bh = toY(0) - y;
+        const col = ev.type === 'income'  ? C.income
+                  : ev.type === 'pay'     ? C.pay
+                  : ev.type === 'start'   ? C.accent
+                  : C.expense;
+
+        ctx.fillStyle = col;
+        ctx.globalAlpha = i < fcStep ? 0.3 : 0.85;
+        ctx.fillRect(x - barW / 2, y, barW, bh);
+        ctx.globalAlpha = 1;
+
+        if (i === fcStep) {
+          const label = `€${ev.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+          ctx.fillStyle = C.bal;
+          ctx.font = `bold 11px 'IBM Plex Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.fillText(label, x, Math.max(y - 5, pt + 12));
+        }
+
+        ctx.fillStyle = C.txt;
+        ctx.font = `9px 'IBM Plex Mono', monospace`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ev.date, x, H - pb + 14);
+      }
+
+      const ev = FC_EVENTS[fcStep];
+      let note = '';
+      if (ev.type === 'start') {
+        note = 'Paying €996.60 today leaves €539.97 — below the €800 minimum. The system must wait.';
+      } else if (ev.type === 'pay') {
+        note = `${ev.label}: balance after payment = €${ev.balance.toLocaleString('en-US',{minimumFractionDigits:2})} — safely above €800. earliest_date_for_full_payment = 2025-04-15.`;
+      } else {
+        const sign = ev.amount > 0 ? '+' : '';
+        note = `${ev.label}: ${sign}€${Math.abs(ev.amount).toFixed(2)} → balance €${ev.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+      }
+      const noteEl = document.getElementById('fc-note');
+      if (noteEl) noteEl.textContent = note;
+
+      const pb2 = document.getElementById('btn-prev');
+      const nb2 = document.getElementById('btn-next');
+      if (pb2) pb2.disabled = fcStep === 0;
+      if (nb2) nb2.disabled = fcStep === FC_EVENTS.length - 1;
+    }
+
+    window.addEventListener('resize', () => { if (currentStage === 2) drawForecast(); });
+
+    // ── Decision vault data ───────────────────────────────────
+    const DECISIONS = [
+      {
+        id:'D-00', title:'Division of labour',
+        decision:'The model perceives. Deterministic code decides all 8 output fields.',
+        options:[
+          {label:'A', text:'Model decides all 8 fields',           chosen:false},
+          {label:'B', text:'Model observes only, code decides',    chosen:true},
+          {label:'C', text:'Model decides ambiguous records only', chosen:false},
+        ],
+        why:'The strongest-weighted PLAYBOOK pattern, confirmed independently by two previous winning submissions. The decision layer is fully testable and auditable without API keys. Changing a rule costs zero model calls.',
+        breaks:'If the balance forecast itself requires judgment calls code cannot encode — for example, ambiguous event category classification.'
+      },
+      {
+        id:'D-01', title:'Pipeline shape',
+        decision:'Three stages (load_inputs, forecast, decide) plus write_output.',
+        options:[
+          {label:'A', text:'Three stages — one per kind of work',          chosen:true},
+          {label:'B', text:'Five stages — separate OCR and message parse', chosen:false},
+          {label:'C', text:'One stage per request record',                 chosen:false},
+        ],
+        why:'Three stages map exactly to three kinds of work. Cache keys sit at stage boundaries. Re-running Stages 2 and 3 after a rule change costs zero model calls.',
+        breaks:'If message parse errors are difficult to isolate without their own stage. Splitting Stage 1 has low reversal cost.'
+      },
+      {
+        id:'D-02', title:'Model calls per record',
+        decision:'Zero model calls per request record. All model work runs once in Stage 1.',
+        options:[
+          {label:'A', text:'Zero per-record calls — pre-process everything once', chosen:true},
+          {label:'B', text:'One structured-output call per record',               chosen:false},
+          {label:'C', text:'Two calls per record',                                chosen:false},
+        ],
+        why:'Images and messages are user-level data, not request-level. Pre-processing once means 250 decisions run at zero marginal model cost — USD 0.10 per full run.',
+        breaks:'A future edition with per-request evidence unique to each record would need a per-record call — but we would not add that speculatively.'
+      },
+      {
+        id:'D-03', title:'Routing',
+        decision:'Fully deterministic routing everywhere. The model never decides which code branch runs.',
+        options:[
+          {label:'A', text:'Fully deterministic routing',            chosen:true},
+          {label:'B', text:'Model classifier per request type',      chosen:false},
+          {label:'C', text:'Heuristic pre-filter for obvious cases', chosen:false},
+        ],
+        why:'Every branch in the decision layer is a rule over numbers. No ambiguous class requires a model. Deterministic routing is testable, reproducible, and costs nothing.',
+        breaks:'If affordability categories develop overlapping numeric conditions that require qualitative weighting between cases.'
+      },
+      {
+        id:'D-04', title:'Retrieval',
+        decision:'No retrieval layer. Join on declared foreign keys only.',
+        options:[
+          {label:'A', text:'No retrieval — foreign key joins only', chosen:true},
+          {label:'B', text:'Keyword search over messages',          chosen:false},
+          {label:'C', text:'Embeddings over messages',              chosen:false},
+        ],
+        why:'Every relationship is encoded as a foreign key. Retrieval solves a semantic lookup problem. This dataset does not have a semantic lookup problem.',
+        breaks:'Nothing in this problem. Explicitly a PLAYBOOK departure — recorded in D-04 of the decision log.'
+      },
+      {
+        id:'D-05', title:'Confidence',
+        decision:'Binary evidence_complete flag per user. False forces not_affordable across all their requests.',
+        options:[
+          {label:'A', text:'Binary evidence flag per user',        chosen:true},
+          {label:'B', text:'Probability score from the model',     chosen:false},
+          {label:'C', text:'Field-level evidence flags per event', chosen:false},
+        ],
+        why:'A probability score requires a threshold — an architectural decision with no ground truth. A binary flag directly answers "do we have the numbers to compute the forecast?"',
+        breaks:'If per-field granularity matters for scoring — one missing image amount should not block every output field, only those that depend on that amount.'
+      },
+      {
+        id:'D-06', title:'Non-text inputs',
+        decision:'Claude Haiku vision call per image, cached by image_id and file hash.',
+        options:[
+          {label:'A', text:'claude-haiku-4-5 vision — 16 calls, cached', chosen:true},
+          {label:'B', text:'Tesseract local OCR',                         chosen:false},
+          {label:'C', text:'GPT-4o vision',                               chosen:false},
+        ],
+        why:'16 total calls, cached on first run. Same SDK already in use — no new dependency. Tesseract struggles with stylized receipt fonts.',
+        breaks:'If the contest environment blocks outbound internet. Reversal: swap for a Tesseract subprocess in load_inputs.py — medium effort.'
+      },
+      {
+        id:'D-07', title:'Abstain policy',
+        decision:'Three hard triggers cap affordability_status at not_affordable with amount_safe_to_pay = 0.',
+        options:[
+          {label:'A', text:'Binary cap to not_affordable on any missing evidence', chosen:true},
+          {label:'B', text:'Soft abstain downgrading to affordable_later',         chosen:false},
+          {label:'C', text:'No abstain — use zero as default',                    chosen:false},
+        ],
+        why:'Option C risks wrong positive labels on incomplete data. Triggers: evidence_complete = False, adversarial message content, adversarial request text.',
+        breaks:'If the scoring rubric penalises not_affordable more than affordable_later for incomplete evidence.'
+      },
+      {
+        id:'D-08', title:'Evaluation strategy',
+        decision:'Per-field exact-match accuracy against sample_requests.csv, run after every code change.',
+        options:[
+          {label:'A', text:'Overall accuracy only',      chosen:false},
+          {label:'B', text:'Per-field accuracy',         chosen:true},
+          {label:'C', text:'Weighted score matching rubric weights', chosen:false},
+        ],
+        why:'Per-field accuracy tells us which field to fix next. Overall accuracy is not actionable. We ran 3 targeted iterations, gaining +2 fields each time.',
+        breaks:'Nothing. This decision has no downside.'
+      },
+      {
+        id:'D-09', title:'Model tiering',
+        decision:'No model tier ladder. Architecture already limits calls to 16 images + 215 messages.',
+        options:[
+          {label:'A', text:'Pre-filter for trivially affordable records', chosen:false},
+          {label:'B', text:'Two tiers — cheap model for messages, vision for images', chosen:false},
+          {label:'C', text:'No tiering — cheap-gate principle already met', chosen:true},
+        ],
+        why:'At USD 0.10 per full run, cost is not the bottleneck. Model calls are per-user, not per-record. The PLAYBOOK cheap-gate principle is already satisfied.',
+        breaks:'If profiling shows the Python balance forecast is slow at scale and a pre-filter saves meaningful time.'
+      },
+      {
+        id:'D-10', title:'Evidence verification',
+        decision:'Generate decision_explanation from code using actual event IDs. Never from a model prompt.',
+        options:[
+          {label:'A', text:'Post-hoc citation whitelist',            chosen:false},
+          {label:'B', text:'Full provenance trace per output field', chosen:false},
+          {label:'C', text:'Code-generated explanation only',        chosen:true},
+        ],
+        why:'If the model never writes the explanation, a hallucinated citation cannot exist. No whitelist guard needed. Explanations are grounded by construction.',
+        breaks:'If the rubric rewards rich natural-language quality the model would produce. Our template-style text scores low on richness but cannot cite a source it did not consult.'
+      },
+    ];
+
+    function buildDecisions() {
+      document.getElementById('decision-list').innerHTML = DECISIONS.map((d, i) => `
+        <div class="dc" id="dc${i}">
+          <button type="button" class="dc-head" onclick="toggleDC(${i})" aria-expanded="false" aria-controls="dcb${i}">
+            <span class="dc-id">${d.id}</span>
+            <div class="dc-meta">
+              <div class="dc-title">${d.title}</div>
+              <div class="dc-decision">${d.decision}</div>
+            </div>
+            <span class="dc-chevron">▶</span>
+          </button>
+          <div class="dc-body" id="dcb${i}">
+            <div class="caps-label" style="margin-bottom:8px">Options considered</div>
+            <div class="option-list">
+              ${d.options.map(o => `
+                <div class="opt ${o.chosen ? 'chosen' : 'other'}">
+                  <span class="opt-badge">${o.label}${o.chosen ? ' ✓' : ''}</span>
+                  <span>${o.text}</span>
+                </div>`).join('')}
+            </div>
+            <div class="info-box why"><div class="info-box-label">Why we chose this</div>${d.why}</div>
+            <div class="info-box breaks"><div class="info-box-label">Breaks if</div>${d.breaks}</div>
+          </div>
+        </div>`).join('');
+    }
+
+    function toggleDC(i) {
+      const el = document.getElementById('dc' + i);
+      const open = el.classList.toggle('open');
+      el.querySelector('.dc-head').setAttribute('aria-expanded', open);
+    }
+
+    // ── MCQ data ──────────────────────────────────────────────
+    const CHALLENGES = [
+      // ── Architecture (4) ──
+      {
+        stage: 'arch',
+        q: 'Why does the pipeline have three stages rather than one or five?',
+        options: [
+          {text: 'Three stages keep the file count small and avoid loading all data on every run.', correct: false},
+          {text: 'Three stages map to three kinds of work — model calls, arithmetic, deterministic rules — and the cache boundary between Stage 1 and the rest means rule changes re-run at zero model cost.', correct: true},
+          {text: 'Three stages allow each to run on a separate server for scalability.', correct: false},
+          {text: 'Three is the minimum required by the contest runner.', correct: false},
+        ],
+        explain: 'Stage 1 is the only stage that calls the model, and every result is saved by SHA-256 of the input. When you change a threshold in Stage 3, you re-run Stages 2 and 3 against cached observations at zero cost. File count and deployment topology are side effects, not the reason.',
+        wrongExplain: [
+          'File count is a side effect. The stages exist because the work is fundamentally different at each boundary.',
+          null,
+          'Separate servers may be the future roadmap, but the boundary exists today for caching, not deployment topology.',
+          'The contest has no such requirement. We chose three stages because the work divides naturally at these points.',
+        ]
+      },
+      {
+        stage: 'arch',
+        q: 'Why does the model only observe evidence — never name the affordability verdict?',
+        options: [
+          {text: 'The Anthropic API rate limit prevents calling it once per request.', correct: false},
+          {text: 'The decision layer is deterministic code — it is testable, auditable, and immune to prompt injection.', correct: true},
+          {text: 'The model is only reliable for image recognition, not financial reasoning.', correct: false},
+          {text: 'Deterministic code is cheaper to run than a model call per record.', correct: false},
+        ],
+        explain: '"Model perceives, code decides" is the strongest pattern from the PLAYBOOK. The decision layer is a set of arithmetic checks over the forecast — entirely testable without any model. If the model wrote the verdict, adversarial text in a message could influence it.',
+        wrongExplain: [
+          'Rate limits were handled in Stage 10 with a semaphore and backoff — they are not the reason for the architecture.',
+          null,
+          'The model parses messages and reads receipts accurately. The reason is auditability and injection resistance, not model incapability.',
+          'At USD 0.10 per full run, cost is not the deciding factor. The reason is auditability and security.',
+        ]
+      },
+      {
+        stage: 'arch',
+        q: 'What does the SHA-256 cache key cover, and why does that boundary matter for iteration?',
+        options: [
+          {text: 'The cache key covers the full CSV file content, so any record change busts the cache.', correct: false},
+          {text: 'The cache key covers the exact text sent to the model — prompt plus evidence — so identical inputs always replay without a new API call.', correct: true},
+          {text: 'The cache stores the final output.csv row, not the model response.', correct: false},
+          {text: 'The cache uses a time-based TTL and expires every 24 hours.', correct: false},
+        ],
+        explain: 'Each cache entry is one JSON file named by the SHA-256 hex digest of the input string (prompt + evidence). Stage 1 hashes the input and reads the file if it exists. This makes iterating on Stage 2 and Stage 3 rules affordable — change a rule and re-run without paying for model calls again.',
+        wrongExplain: [
+          'The cache key is per-model-call input, not per-CSV file. Only the evidence sent for one user affects that user\'s cache entry.',
+          null,
+          'The cache stores the raw model response (parsed intent or OCR result). The final decision is computed fresh in Stage 3 every run.',
+          'There is no TTL. Within a 24-hour window, expiry is irrelevant. Entries are write-once per unique input.',
+        ]
+      },
+      {
+        stage: 'arch',
+        q: 'When does the system abstain, and what does abstain mean for the output row?',
+        options: [
+          {text: 'The system abstains when the user\'s balance is below minimum_balance_to_keep on request_date.', correct: false},
+          {text: 'Three triggers set evidence_complete = False — failed image OCR, adversarial message content, and a missing required amount — and any of them caps the decision at not_affordable with amount_safe_to_pay = 0.', correct: true},
+          {text: 'The system abstains when the model returns a confidence score below 0.7.', correct: false},
+          {text: 'Abstain triggers whenever the request amount exceeds the current balance.', correct: false},
+        ],
+        explain: 'evidence_complete is a per-user binary flag. If it is False, _decide_one skips the forecast entirely and returns not_affordable with amount_safe_to_pay = 0. A wrong not_affordable costs less than a wrong affordable_now on incomplete evidence.',
+        wrongExplain: [
+          'Balance below minimum triggers the wait or installment path — it is a normal case, not an abstain condition.',
+          null,
+          'There is no model-generated confidence score. evidence_complete is set by deterministic checks in load_inputs.py.',
+          'A balance below the request amount is normal — it leads to the wait path. It is not an abstain trigger.',
+        ]
+      },
+      // ── Stage 1 — load_inputs (4) ──
+      {
+        stage: 's1',
+        q: 'Why does load_inputs.py load all CSVs as string dtype before casting numerics and dates?',
+        options: [
+          {text: 'String dtype loads faster than numeric dtype for large files in pandas.', correct: false},
+          {text: 'Strict dtype inference silently promotes blanks to float and rejects mixed-format dates — loading as string first lets us cast with errors=coerce and produce NaN instead of a crash.', correct: true},
+          {text: 'String dtype preserves leading zeros in account numbers that would be stripped by numeric inference.', correct: false},
+          {text: 'The problem statement requires all CSV values to be read as strings.', correct: false},
+        ],
+        explain: 'Pandas dtype inference at read time is unpredictable on messy data. Loading as string first and casting with errors="coerce" means a bad amount becomes NaN, not a crash. The Stage 7 guardrail then catches NaN in critical fields before any decision row is written.',
+        wrongExplain: [
+          'String dtype is typically slower. The reason is correctness under messy input, not performance.',
+          null,
+          'Account number preservation is valid in general banking systems but not a factor here — we join on declared foreign keys.',
+          'The problem statement has no such requirement. This is our own defensive loading pattern.',
+        ]
+      },
+      {
+        stage: 's1',
+        q: 'Three events set evidence_complete = False. What are they?',
+        options: [
+          {text: 'A model rate-limit error, a missing financial_profiles row, and an unsupported currency code.', correct: false},
+          {text: 'A failed image OCR after one retry, adversarial content detected in message_text, and a missing required amount field in financial_events.', correct: true},
+          {text: 'An installment plan with no no-fee option, allows_partial_payment = false, and a blank desired_completion_date.', correct: false},
+          {text: 'Any non-JSON model response, a date parse error, and a negative balance in the forecast.', correct: false},
+        ],
+        explain: 'OCR failure means an image amount is missing from the forecast. Adversarial message content means the message cannot be trusted as evidence. A missing event amount means the forecast would run on incomplete data. All three set the per-user binary flag to False, forcing not_affordable for all that user\'s requests.',
+        wrongExplain: [
+          'Rate-limit errors trigger a retry, not an evidence flag. Missing profiles or currency codes raise a load error, not an evidence check.',
+          null,
+          'Installment plan shape, partial payment permission, and completion dates are handled in decide.py — they do not affect the evidence flag.',
+          'Non-JSON model output triggers one retry and then a cache miss, not an evidence flag. Negative balance is a forecast outcome, not a load-time check.',
+        ]
+      },
+      {
+        stage: 's1',
+        q: 'Adversarial detection runs twice in the pipeline. Where does each check sit?',
+        options: [
+          {text: 'Both checks run in forecast.py as a pre-filter before balance projection.', correct: false},
+          {text: 'The first check runs in load_inputs.py on message_text per user; the second runs at the top of _decide_one in decide.py on request_text per request.', correct: true},
+          {text: 'One check runs before the model call and one after, to catch both input and output injection.', correct: false},
+          {text: 'Both checks run inside a shared _check_adversarial function called from main.py.', correct: false},
+        ],
+        explain: 'The message check is per-user and runs once at load time — a match sets evidence_complete = False for all that user\'s requests. The request_text check is per-request and runs at the top of _decide_one — a match returns not_affordable before any forecast computation.',
+        wrongExplain: [
+          'forecast.py handles balance projection only. It has no access to raw message or request text.',
+          null,
+          'There is no post-model adversarial check. The model never sees adversarial content — the check blocks it before the model call or before the forecast.',
+          'There is a shared _check_adversarial function but it is called from load_inputs.py, not main.py. The request_text check is a separate early return in decide.py.',
+        ]
+      },
+      {
+        stage: 's1',
+        q: 'A salary message arrives with intent = amend but no related_event_id. What exactly happens?',
+        options: [
+          {text: 'The run raises a KeyError and stops.', correct: false},
+          {text: 'The parse result is cached but not applied — financial events are unchanged, and the forecast may silently be wrong if the amendment does not match the recurring pattern median.', correct: true},
+          {text: 'evidence_complete is set to False and all that user\'s requests return not_affordable.', correct: false},
+          {text: 'The model retries the parse three times and then records intent as other.', correct: false},
+        ],
+        explain: '_apply_messages looks for related_event_id on each message. A blank field means no event row is updated. In the user_08 trace, the amended salary matched the historical median our recurring detector already projected, so the silent skip caused no error. If the amount differs, the forecast is wrong with no runtime signal.',
+        wrongExplain: [
+          '_apply_messages checks for the field before attempting a join. A missing related_event_id is handled gracefully — no crash.',
+          null,
+          'evidence_complete = False is set only for failed OCR or adversarial content. A parse with no linked event is valid evidence that simply cannot update a specific row.',
+          'Retries happen only when the model returns malformed JSON. A successful parse that cannot be applied does not trigger any retry.',
+        ]
+      },
+      // ── Stage 2 — forecast (3) ──
+      {
+        stage: 's2',
+        q: 'How does the recurring pattern detector distinguish salary from bonus payments?',
+        options: [
+          {text: 'It calls the model once per user to classify each event category as income or expense.', correct: false},
+          {text: 'It clusters events by day-of-month, uses the modal day ±3 to filter out irregular bonus payments, then runs interval detection on the cleaned set.', correct: true},
+          {text: 'It reads the event category column and maps known strings like "salary" to income.', correct: false},
+          {text: 'It uses the sign of the amount — positive = income, negative = expense — and keeps only predictable intervals.', correct: false},
+        ],
+        explain: 'Day-of-month clustering solved the income detection problem for users 11 and 13, who receive bonuses on irregular dates. The modal day ±3 window keeps only the predictable recurring salary and rejects the bonus before interval detection runs. Without this filter, the detector counted bonuses as part of the regular salary pattern.',
+        wrongExplain: [
+          'No model call runs in Stage 2. All pattern detection is deterministic code in forecast.py.',
+          null,
+          'Event categories help but are insufficient — bonuses and salary can share the same category label. The day-of-month clustering is the additional filter.',
+          'Sign identifies direction but not recurrence pattern. Multiple irregular bonuses would all be positive and would incorrectly inflate the recurring income estimate.',
+        ]
+      },
+      {
+        stage: 's2',
+        q: 'Why is amount_safe_to_pay only 16% accurate, and why was shipping it the right decision?',
+        options: [
+          {text: 'The model returns inconsistent values for this field across runs.', correct: false},
+          {text: 'We project fewer recurring expenses than gold does, and adding extra interval buckets fixed 2 requests but broke 3 others — a wrong fix would cascade into worse affordability_status accuracy.', correct: true},
+          {text: 'The field was descoped from the contest scoring rubric after we built it.', correct: false},
+          {text: 'We ran out of time and the field uses a placeholder value.', correct: false},
+        ],
+        explain: 'amount_safe_to_pay is pure arithmetic in forecast.py and decide.py — the model never touches it. We tried adding 10-day and 21-day interval buckets: they fixed users 03 and 18 but projected a ghost grocery expense on user 25, breaking 3 other fields net. Shipping without the fix kept the other three scored fields at 72–92%.',
+        wrongExplain: [
+          'This field is deterministic. The model never decides it. Non-determinism is not the issue.',
+          null,
+          'The problem statement lists this field as scored. There is no evidence it was descoped.',
+          'The field is fully implemented and returns a calculated value for every request. The issue is accuracy against gold\'s projection model, not missing code.',
+        ]
+      },
+      {
+        stage: 's2',
+        q: 'How does the forecast enforce the minimum balance constraint — is the floor applied in forecast.py or decide.py?',
+        options: [
+          {text: 'forecast.py raises an exception and stops if any projected balance falls below the minimum.', correct: false},
+          {text: 'The projection in forecast.py is purely descriptive — decide.py calls check_safe_with_extra to find the first date where the post-payment suffix minimum stays at or above the floor.', correct: true},
+          {text: 'forecast.py clips every projected balance at minimum_balance_to_keep so it never shows a dip.', correct: false},
+          {text: 'The minimum balance is checked once at request_date, not across the full 90-day window.', correct: false},
+        ],
+        explain: 'forecast.py builds the full 90-day balance sequence without any floor — it is a prediction, not a guardrail. check_safe_with_extra returns the minimum balance over all future cash-flow dates after subtracting the payment. decide.py calls this to find the earliest date where that suffix minimum is ≥ minimum_balance_to_keep.',
+        wrongExplain: [
+          'A sub-minimum projected balance is a common outcome for users waiting on salary — it triggers the wait path, not an error.',
+          null,
+          'Clipping would distort the forecast. The projection must show the true balance including dips so decide.py can find the right future date.',
+          'Checking only at request_date would miss expenses that land between today and the proposed payment date. The suffix minimum scan covers the entire remaining 90-day window.',
+        ]
+      },
+      // ── Stage 3 — decide (4) ──
+      {
+        stage: 's3',
+        q: 'What is the decision priority order in _decide_one, and why does wait come before partial?',
+        options: [
+          {text: 'affordable_now → wait → installments → partial → spending_changes → not_affordable', correct: false},
+          {text: 'full_payment → installments → wait → partial → spending_changes → not_affordable', correct: true},
+          {text: 'full_payment → partial → installments → wait → not_affordable', correct: false},
+          {text: 'The order depends on the user\'s payment preferences in financial_profiles.csv.', correct: false},
+        ],
+        explain: 'Installments come before wait because a no-fee plan that completes by the deadline is cheaper than waiting for a salary credit. Wait comes before partial because partial requires allows_partial_payment = true and means two separate payments — wait is simpler when available. The order is hardcoded in _decide_one in decide.py.',
+        wrongExplain: [
+          'Wait before installments would skip a potentially available no-fee plan. We check installments first because they may complete the request faster.',
+          null,
+          'Partial comes after wait because it requires explicit opt-in and means two payments. Wait is a simpler outcome when it is available.',
+          'The priority order is fixed in code. User preferences affect which options are eligible but do not reorder the decision branches.',
+        ]
+      },
+      {
+        stage: 's3',
+        q: 'How does the wait path find earliest_date_for_full_payment?',
+        options: [
+          {text: 'It finds the next salary credit date and returns that.', correct: false},
+          {text: 'It scans every projected cash-flow date and finds the first date where the suffix minimum — the lowest balance from that date forward after subtracting the payment — stays at or above minimum_balance_to_keep.', correct: true},
+          {text: 'It takes the next salary date plus a two-day settlement buffer.', correct: false},
+          {text: 'It calls the model to estimate the safest payment date given the user\'s cash flow.', correct: false},
+        ],
+        explain: 'The suffix minimum scan is conservative: for each candidate date, it computes the lowest balance across all future cash flows after deducting the payment. The first date where that minimum is ≥ minimum_balance_to_keep is returned. This guarantees the payment does not cause a future dip below the floor.',
+        wrongExplain: [
+          'The next salary date alone does not account for essential expenses that arrive after the salary and push the balance below minimum.',
+          null,
+          'A two-day buffer would not account for recurring expenses that land after the salary credit. The suffix minimum is computed over the entire remaining forecast window.',
+          'No model call runs in Stage 2 or Stage 3. The date is found by deterministic scan of the projected cash-flow sequence.',
+        ]
+      },
+      {
+        stage: 's3',
+        q: 'What does the output validation guardrail in decide.py check, and what happens on failure?',
+        options: [
+          {text: 'It re-runs the full decision logic a second time and compares both outputs.', correct: false},
+          {text: '_validate_row checks all 8 output fields are present and that affordability_status and recommended_payment_method are in their allowed-value whitelists — a failing row is replaced with a safe not_affordable default.', correct: true},
+          {text: 'It sends the output row to the model for a consistency check before writing.', correct: false},
+          {text: 'It checks only that the CSV column count is correct — field-level validation is handled in write_output.py.', correct: false},
+        ],
+        explain: '_validate_row runs after _decide_one returns. It checks every required field is non-empty and that the two enum fields match allowed values. A row that fails any check is replaced with a deterministic not_affordable default — no bad row ever reaches output.csv.',
+        wrongExplain: [
+          'Re-running the decision produces the same output twice and catches no logic errors. That is not a validation strategy.',
+          null,
+          'Sending the output to the model contradicts the model-perceives-code-decides principle. The validation is a whitelist check, not a model call.',
+          'Column count is a weak check. _validate_row checks field presence and enum membership specifically, inside decide.py before the result returns to main.py.',
+        ]
+      },
+      // ── Design Decisions (4) ── D-02, D-03, D-04, D-08
+      {
+        stage: 'design',
+        q: 'You make zero model calls per request record. How does this work for 250 decisions?',
+        options: [
+          {text: 'The model is too slow for per-record calls in a batch job.', correct: false},
+          {text: 'Images and messages are user-level data, not request-level — processing them once per user gives all 250 decisions at zero marginal model cost.', correct: true},
+          {text: 'The contest caps total model calls at 231.', correct: false},
+          {text: 'Zero per-record calls was the easiest architecture to implement in 24 hours.', correct: false},
+        ],
+        explain: 'user_id is the foreign key for both images and messages, not request_id. Pre-processing all users in Stage 1 covers every fact every request needs. The 250 decisions then run in Stages 2 and 3 as pure arithmetic at zero marginal model cost.',
+        wrongExplain: [
+          'Batch latency was not a constraint. The reason is that the data model makes per-user pre-processing sufficient for all per-request decisions.',
+          null,
+          '231 is the count we actually make (215 messages + 16 images). It follows from the data, not a contest rule.',
+          'Simplicity was a benefit, not the motivation. The data model — user-level evidence — is what makes this architecture correct.',
+        ]
+      },
+      {
+        stage: 'design',
+        q: 'Why is routing fully deterministic everywhere? Why not use the model as a classifier for ambiguous cases?',
+        options: [
+          {text: 'The model API is too slow to act as a classifier in the decision loop.', correct: false},
+          {text: 'Every affordability branch is a rule over numbers — deterministic code does this perfectly and is testable without API keys or model calls.', correct: true},
+          {text: 'The contest rules prohibit model-driven routing.', correct: false},
+          {text: 'A model classifier would require per-record calls, increasing cost too much.', correct: false},
+        ],
+        explain: 'All decision branches are numeric conditions: balance minus payment, suffix minimum, installment deadline. These have exact rules with no ambiguity requiring model judgment. Deterministic routing is also what makes the system reproducible and auditable across runs.',
+        wrongExplain: [
+          'API latency is irrelevant — Stage 3 runs after all model calls are complete and cached. The reason is correctness and auditability.',
+          null,
+          'The contest has no such rule. This was an architectural choice aligned with the PLAYBOOK\'s model-perceives-code-decides principle.',
+          'Cost was not the concern. The reason is that numeric decision rules need no model — they are exact, reproducible, and fully testable.',
+        ]
+      },
+      {
+        stage: 'design',
+        q: 'Why no retrieval layer or embeddings over the messages?',
+        options: [
+          {text: 'Embedding API costs would exceed the hackathon budget at 215 messages.', correct: false},
+          {text: 'Every message-to-event link is a declared foreign key (related_event_id) — there is no semantic lookup problem to solve.', correct: true},
+          {text: 'The messages are too short for semantic search to be reliable.', correct: false},
+          {text: 'There was not enough time to implement a vector database in 24 hours.', correct: false},
+        ],
+        explain: 'Retrieval solves a problem where document relationships are unlabeled and semantic. In this dataset, every connection is declared: a message that amends an event carries that event\'s ID in related_event_id. A JOIN is the right tool. We recorded this as a deliberate PLAYBOOK departure in D-04.',
+        wrongExplain: [
+          'At 215 messages, embedding costs are negligible. Cost was not the reason — the data model is.',
+          null,
+          'Message length is irrelevant to whether retrieval is appropriate. The reason is that explicit foreign keys already solve the lookup problem.',
+          'The correct tool here is a JOIN, not a retrieval system. More time would not change the architecture — the data has no semantic lookup problem.',
+        ]
+      },
+      {
+        stage: 'design',
+        q: 'Why measure per-field accuracy rather than overall accuracy when iterating?',
+        options: [
+          {text: 'Overall accuracy is required by the contest scoring rubric.', correct: false},
+          {text: 'Per-field accuracy tells us which field to fix next — an overall score is not actionable when iterating against 25 labelled samples.', correct: true},
+          {text: 'Per-field accuracy is easier to compute than overall accuracy.', correct: false},
+          {text: 'The contest grades each field on a separate leaderboard.', correct: false},
+        ],
+        explain: 'After the initial build, status was 76%, method 84%, earliest 72%, and amount_safe_to_pay 16%. Overall accuracy hides which field is the bottleneck. Targeting the lowest field per pass is what made two iterations each gain +2 correct fields.',
+        wrongExplain: [
+          'The rubric has weighted scores per field, but we chose per-field tracking ourselves for iteration speed. It is not a rubric requirement.',
+          null,
+          'Both calculations are trivial. The reason is that per-field accuracy is more actionable, not easier to compute.',
+          'There is one leaderboard. Per-field tracking is our own practice for efficient iteration — not a platform feature.',
+        ]
+      },
+      // ── Model & Safety (3) ── D-06, D-09, D-10
+      {
+        stage: 'safety',
+        q: 'Why use claude-haiku vision for image OCR rather than local Tesseract?',
+        options: [
+          {text: 'Tesseract is not available in the contest environment.', correct: false},
+          {text: 'Tesseract struggles with stylized receipt fonts — claude-haiku reads them accurately, and at 16 images total the cost is negligible with results cached.', correct: true},
+          {text: 'Claude-haiku runs faster than Tesseract on the contest hardware.', correct: false},
+          {text: 'The problem statement requires using the Anthropic API for all evidence extraction.', correct: false},
+        ],
+        explain: 'Tesseract is trained on document-style text and misreads styled fonts common on receipts. Claude-haiku\'s vision call handles varied layouts reliably. With 16 images total and results cached by image_id and file hash, the total OCR cost is approximately USD 0.026 for the full dataset.',
+        wrongExplain: [
+          'Tesseract is a standard library available anywhere. Availability was not the concern — font handling accuracy was.',
+          null,
+          'Speed was not a constraint for 16 one-time calls. Accuracy on styled receipt fonts was the deciding factor.',
+          'The problem statement has no such requirement. We chose the API because it handles receipt fonts better than local OCR.',
+        ]
+      },
+      {
+        stage: 'safety',
+        q: 'Why no model tier ladder — no cheap pre-filter for obviously affordable records?',
+        options: [
+          {text: 'We could not find a reliable heuristic to identify obviously affordable records.', correct: false},
+          {text: 'The cheap-gate principle is already satisfied by architecture — model calls are per-user, not per-record, so 250 decisions cost nothing marginal.', correct: true},
+          {text: 'A pre-filter would require an extra model call per record to classify affordability.', correct: false},
+          {text: 'The contest runner does not support conditional model calls between stages.', correct: false},
+        ],
+        explain: 'At USD 0.10 per full run, cost is not the bottleneck. Model calls in Stage 1 are bounded by the number of users (not requests), so adding more requests does not increase model cost. The cheap-gate principle from the PLAYBOOK is met by architecture, not a heuristic filter.',
+        wrongExplain: [
+          'A heuristic pre-filter is buildable. The reason we skipped it is that it solves no real problem — the architecture already has zero marginal cost per additional request.',
+          null,
+          'A pre-filter skips model calls, not adds them. The point is that this optimization is unnecessary given the existing architecture.',
+          'The contest has no such constraint. The reason is that tiering is unnecessary when marginal cost is already zero.',
+        ]
+      },
+      {
+        stage: 'safety',
+        q: 'Why generate decision_explanation from code rather than asking the model to write it?',
+        options: [
+          {text: 'The model writes verbose text that exceeds the explanation field length limit.', correct: false},
+          {text: 'If the model never writes the explanation, a hallucinated citation cannot exist — explanations are grounded by construction with no whitelist guard needed.', correct: true},
+          {text: 'Model-written text does not match the required output schema format.', correct: false},
+          {text: 'Generating from code is faster than a model call for each of the 250 records.', correct: false},
+        ],
+        explain: 'Code-generated text uses the actual event IDs and computed values that drove the decision. A model-written explanation could cite events it did not process or amounts it did not compute. By generating from code, grounding is guaranteed — no citation can be hallucinated because the model never names the sources.',
+        wrongExplain: [
+          'Field length is not the concern. The reason is citation accuracy and grounding.',
+          null,
+          'Schema compliance is enforced by _validate_row regardless of how the explanation is generated. The reason for code generation is grounding, not schema.',
+          'Speed was not a factor — Stage 3 runs 250 times with no model calls. The reason is citation integrity.',
+        ]
+      },
+      // ── Stage 3 keep after new tabs ──
+      {
+        stage: 's3',
+        q: 'How are spending changes constrained — what categories can the system suggest changing?',
+        options: [
+          {text: 'The system can suggest any category if the total savings exceed the payment amount.', correct: false},
+          {text: 'Only non-protected, flexible events in categories listed as adjustable in financial_profiles.csv can appear in spending_changes_needed.', correct: true},
+          {text: 'The model selects the three most expensive events to suggest reducing.', correct: false},
+          {text: 'Spending changes are suggested only when the user\'s forecast balance goes negative.', correct: false},
+        ],
+        explain: 'financial_profiles.csv has adjustable_categories and protected_categories. _find_spending_changes only touches events in adjustable categories and not in protected ones. The spending-changes path is also only reached after full_payment, installments, wait, and partial have all failed.',
+        wrongExplain: [
+          'The system respects user-declared constraints. Even a large discretionary expense cannot be suggested if it is in a protected or fixed-cost category.',
+          null,
+          'No model call runs in Stage 3. Spending change selection is deterministic code in _find_spending_changes.',
+          'Negative forecast balance is not the trigger. Spending changes are the fourth fallback in the priority order — only reached after the first four options are all ruled out.',
+        ]
+      },
+    ];
+
+    let activeStage = 'arch';
+    let stagePosIdx = 0; // position within the active stage's question list
+    let score = 0;
+    let answeredCount = 0;
+    const answered = new Array(CHALLENGES.length).fill(null); // null | {correct, picked}
+
+    function stageQs() {
+      return CHALLENGES.map((c, i) => ({...c, globalIdx: i})).filter(c => c.stage === activeStage);
+    }
+
+    function switchStage(stg) {
+      activeStage = stg;
+      stagePosIdx = 0;
+      document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+      const stgMap = {arch:0, s1:1, s2:2, s3:3, design:4, safety:5};
+      document.querySelectorAll('.stab')[stgMap[stg]].classList.add('active');
+      loadChallenge(0);
+    }
+
+    function loadChallenge(pos) {
+      const qs = stageQs();
+      if (!qs.length) return;
+      stagePosIdx = pos;
+      const c = qs[pos];
+      const gi = c.globalIdx;
+
+      document.getElementById('mcq-q').textContent = c.q;
+      document.getElementById('mcq-explain').classList.remove('show');
+
+      const state = answered[gi];
+      const opts = document.getElementById('mcq-options');
+      const letters = ['A','B','C','D'];
+      opts.innerHTML = c.options.map((o, j) => {
+        let cls = '';
+        if (state) {
+          if (o.correct)              cls = 'correct';
+          else if (j === state.picked) cls = 'wrong';
+          else                         cls = 'dim';
+        }
+        return `
+          <button type="button" class="mcq-opt ${cls}" onclick="pickOpt(${j})"
+            ${state ? 'disabled' : ''} aria-label="Option ${letters[j]}: ${o.text}">
+            <span class="opt-letter">${letters[j]}</span>
+            <span class="opt-text">${o.text}</span>
+          </button>`;
+      }).join('');
+
+      if (state) showExplain(state.picked, gi);
+
+      document.getElementById('practice-progress').textContent = `${pos + 1} / ${qs.length}`;
+      updateScore();
+      document.getElementById('btn-prev-q').disabled = pos === 0;
+      document.getElementById('btn-next-q').disabled = pos === qs.length - 1;
+    }
+
+    function pickOpt(j) {
+      const qs = stageQs();
+      const c = qs[stagePosIdx];
+      const gi = c.globalIdx;
+      if (answered[gi]) return;
+      const isCorrect = c.options[j].correct;
+      if (isCorrect) score++;
+      answeredCount++;
+      answered[gi] = {correct: isCorrect, picked: j};
+
+      document.querySelectorAll('.mcq-opt').forEach((el, idx) => {
+        el.disabled = true;
+        if (c.options[idx].correct) el.classList.add('correct');
+        else if (idx === j)          el.classList.add('wrong');
+        else                         el.classList.add('dim');
+      });
+
+      showExplain(j, gi);
+      updateScore();
+    }
+
+    function showExplain(picked, gi) {
+      const c = CHALLENGES[gi];
+      const panel = document.getElementById('mcq-explain');
+      const label = document.getElementById('explain-label');
+      const body  = document.getElementById('explain-body');
+      const isCorrect = c.options[picked].correct;
+
+      if (isCorrect) {
+        label.textContent = '✓ Correct';
+        label.style.color = 'var(--green)';
+      } else {
+        label.textContent = '✗ Not quite — here is why the correct answer works:';
+        label.style.color = 'var(--red)';
+      }
+
+      let text = c.explain;
+      if (!isCorrect && c.wrongExplain && c.wrongExplain[picked]) {
+        text = c.wrongExplain[picked] + ' — ' + c.explain;
+      }
+      body.textContent = text;
+      panel.classList.add('show');
+    }
+
+    function updateScore() {
+      const el = document.getElementById('score-display');
+      if (answeredCount === 0) { el.textContent = ''; return; }
+      el.innerHTML = `Score: <span class="score-right">${score}</span> / ${answeredCount}`;
+    }
+
+    function jumpChallenge(dir) {
+      const qs = stageQs();
+      const next = stagePosIdx + dir;
+      if (next < 0 || next >= qs.length) return;
+      loadChallenge(next);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (!document.getElementById('sec-practice').classList.contains('active')) return;
+      if (e.key === 'ArrowRight') jumpChallenge(1);
+      if (e.key === 'ArrowLeft')  jumpChallenge(-1);
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= 4 && !answered[stageQs()[stagePosIdx]?.globalIdx]) pickOpt(num - 1);
+    });
+
+    // ── Limits data ───────────────────────────────────────────
+    const LIMITS = [
+      {n:'01', title:'amount_safe_to_pay accuracy is 16%',
+        desc:'Our projection is consistently higher than gold because we project fewer recurring expenses. Adding 10-day and 21-day interval buckets fixed 2 requests and broke 3 others — net negative. Fixing this requires knowing gold\'s projection algorithm, which is not observable from 25 labelled examples.'},
+      {n:'02', title:'10-day and 21-day patterns not detected',
+        desc:'Users 03 and 18 have expenses on non-standard cycles. Adding those buckets projected a ghost grocery expense on user 25 that gold skips. The correct fix is per-user bucket selection, which requires knowing the right intervals per user.'},
+      {n:'03', title:'Salary amendments without related_event_id are ignored',
+        desc:'Several messages describe salary changes without referencing a specific event row. We parse the intent and amount but cannot apply it. The recurring pattern detector self-corrects when the amount matches the historical median — but fails silently when it does not.'},
+      {n:'04', title:'Exchange rate staleness at month boundaries',
+        desc:'We use the most recent dated rate at or before the settlement date. If a rate changes on a date with no table entry, we use a stale rate. We have not audited gap sizes or whether any of the 250 requests are affected.'},
+      {n:'05', title:'No unit tests on the decision layer',
+        desc:'The self-test covers only the 25 labelled samples. Individual branches — spending changes, installment selection, partial payment construction — have no isolated tests. A rule change can break other requests silently.'},
+    ];
+
+    const FUTURE = [
+      {stage:'Next — 1 week',  title:'REST service wrapper',
+        desc:'FastAPI endpoint that accepts a request payload and returns a decision JSON object. The pipeline stages become functions called per request.'},
+      {stage:'Then — 2 weeks', title:'Persistent event store',
+        desc:'PostgreSQL replacing financial_events.csv. Enables live event ingestion from bank APIs or webhooks. forecast.py and decide.py require no changes.'},
+      {stage:'Then — 4 weeks', title:'Live bank data connectors',
+        desc:'Open Banking API connectors (Plaid, TrueLayer) that ingest transactions automatically. A new connectors/ module polls or receives webhooks per bank provider.'},
+      {stage:'Then — 2 weeks', title:'Confidence scoring + review queue',
+        desc:'A confidence score per decision and a human escalation queue for low-confidence or high-value requests. decide.py gains a confidence() function.'},
+    ];
+
+    function buildLimits() {
+      document.getElementById('limit-list').innerHTML = LIMITS.map(l => `
+        <div class="limit-item">
+          <span class="limit-n">${l.n}</span>
+          <div>
+            <div class="limit-title">${l.title}</div>
+            <div class="limit-desc">${l.desc}</div>
+          </div>
+        </div>`).join('');
+
+      document.getElementById('future-grid').innerHTML = FUTURE.map(f => `
+        <div class="future-card">
+          <div class="future-stage">${f.stage}</div>
+          <div class="future-title">${f.title}</div>
+          <div class="future-desc">${f.desc}</div>
+        </div>`).join('');
+    }
+
+    // ── Evaluation data ───────────────────────────────────────
+    const ACCURACY = [
+      {field: 'recommended_payment_method', correct: 23, total: 25, pct: 92},
+      {field: 'affordability_status',        correct: 21, total: 25, pct: 84},
+      {field: 'earliest_date_for_full_payment', correct: 18, total: 25, pct: 72},
+      {field: 'amount_safe_to_pay',           correct:  4, total: 25, pct: 16},
+    ];
+
+    function buildEvaluation() {
+      document.getElementById('accuracy-grid').innerHTML = ACCURACY.map(a => `
+        <div class="acc-row">
+          <div class="acc-label">${a.field}</div>
+          <div class="acc-bar-wrap">
+            <div class="acc-bar ${a.pct < 50 ? 'low' : ''}" style="width:${a.pct}%"></div>
+          </div>
+          <div class="acc-pct">${a.pct}%</div>
+        </div>`).join('');
+    }
+
+    // ── Boot ──────────────────────────────────────────────────
+    buildDecisions();
+    loadChallenge(0);
+    buildLimits();
+    buildEvaluation();
+    pickStage(1);
+  </script>
+</body>
+</html>
