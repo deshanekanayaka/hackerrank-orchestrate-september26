@@ -4,6 +4,15 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 3: Prompt layer implementation choices
+
+**Decision**: prompt strings and response dataclasses live together in `code/prompts.py`. Every allowed intent value is listed verbatim in the prompt text.
+**Rejected**: pydantic models (not installed, adds a new dependency). Inline dict key checks in Stage 4 (ad-hoc, not reusable).
+**Risk**: `new_date` format is not regex-validated. `forecast.py` will coerce a bad date to None rather than reject the whole message result.
+**Where**: `code/prompts.py`
+
+---
+
 ### Stage 2: Cache implementation choices
 
 **Decision**: one JSON file per cache entry, named by SHA-256 hex digest of the key string, stored in `cache/`.

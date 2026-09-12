@@ -207,7 +207,7 @@ I did not follow that. Explain what this stage does and why we built it this way
 **Before sleep:**
 
 ```
-Commit and push everything. Then update tasks.md: set Next action to the single specific first thing I should do when I wake, and move anything unfinished into Blocked with what unblocks it.
+Commit to a stage branch and request approval before merging and pushing to main (CLAUDE.md Hard Rule 8). Then update tasks.md: set Next action to the single specific first thing I should do when I wake, and move anything unfinished into Blocked with what unblocks it.
 ```
 
 ---

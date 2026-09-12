@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 3: build `code/prompts.py`, the prompt layer with every allowed output value enumerated.
+Stage 4: build `code/ocr.py` and `code/parse_messages.py`, the model call layer.
 
 ## In progress
 
-- [ ] Stage 3: prompt layer
+- [ ] Stage 4: model call (observations)
 
 ## Blocked
 
@@ -21,6 +21,7 @@ Stage 3: build `code/prompts.py`, the prompt layer with every allowed output val
 
 ## Done
 
+- [x] Stage 3: prompt layer (`code/prompts.py`). IMAGE_PROMPT, MESSAGE_PROMPT, ImageResult, MessageResult dataclasses. All checks pass.
 - [x] Stage 2: response cache and replay (`code/cache.py`). SHA-256 keyed, one JSON file per entry in `cache/`, get/put pass self-test.
 - [x] Stage 1: loader and input validation (`code/load_inputs.py`). Results: 250 requests, 275 profiles, 25342 events, 16 images, all files present.
 
@@ -56,8 +57,8 @@ Stage 3: build `code/prompts.py`, the prompt layer with every allowed output val
 
 ### H4-H10 Build
 - [x] 1 loader and input validation
-- [ ] 2 response cache and replay
-- [ ] 3 prompt layer with allowed values enumerated
+- [x] 2 response cache and replay
+- [x] 3 prompt layer with allowed values enumerated
 - [ ] 4 model call returning observations only
 - [ ] 5 deterministic decision layer
 - [ ] 6 evaluation script, per-field accuracy
