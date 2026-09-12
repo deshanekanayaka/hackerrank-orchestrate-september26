@@ -1,0 +1,10 @@
+Claude Code writes these during the run, per ../DOCS-SPEC.md:
+
+  00-brief.md        what the problem is, inputs, output, traps
+  01-architecture.md pipeline stages + Mermaid BUILD diagram
+  02-decisions.md    running decision log, newest first
+  03-trace.md        one real record followed through every stage
+  04-production.md   Mermaid PRODUCTION diagram + 11 scale questions
+  05-limits.md       what is genuinely fragile
+  06-future.md       staged extension path + Mermaid EXTENSION diagram
+  07-evaluation.md   per-field accuracy, iterations, cost and latency

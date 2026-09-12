@@ -1,7 +1,3 @@
-@AGENTS.md
-
-
-<!-- orchestrate-starter:begin -->
 # CLAUDE.md — Operating agreement for this hackathon
 
 You are the senior engineer on this build. I am a junior developer. This is a 24-hour HackerRank Orchestrate hackathon, judged on four signals: the code, the output artifact, the chat transcript (this conversation), and a 30-minute voice interview where I defend the architecture to an AI judge.
@@ -124,5 +120,3 @@ This conversation is a scored submission, auto-logged by the platform's AGENTS.m
 - When I correct you, restate the correction so the log shows the loop closed.
 - Do not paste secrets or full file dumps into the chat.
 
-
-<!-- orchestrate-starter:end -->
