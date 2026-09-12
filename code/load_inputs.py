@@ -69,13 +69,12 @@ class Inputs(NamedTuple):
     evidence_complete: dict[str, bool]
 
 
-def _load_csv(name: str) -> pd.DataFrame:
-    path = DATASET / f"{name}.csv"
-    df = pd.read_csv(path, dtype=str, keep_default_na=False)
-    required = set(SCHEMAS[name])
-    missing = required - set(df.columns)
+def _load_csv(name: str, path: "Path | None" = None) -> pd.DataFrame:
+    p = path or (DATASET / f"{name}.csv")
+    df = pd.read_csv(p, dtype=str, keep_default_na=False)
+    missing = set(SCHEMAS[name]) - set(df.columns)
     if missing:
-        raise ValueError(f"{name}.csv missing required columns: {sorted(missing)}")
+        raise ValueError(f"{p.name} missing required columns: {sorted(missing)}")
     return df[SCHEMAS[name]]
 
 
@@ -107,15 +106,8 @@ def _check_images(images: pd.DataFrame) -> dict[str, bool]:
 def load_all(verbose: bool = True, requests_path: "Path | None" = None) -> Inputs:
     dfs: dict[str, pd.DataFrame] = {}
     for name in SCHEMAS:
-        if name == "requests" and requests_path is not None:
-            df = pd.read_csv(requests_path, dtype=str, keep_default_na=False)
-            required = set(SCHEMAS["requests"])
-            missing = required - set(df.columns)
-            if missing:
-                raise ValueError(f"requests file missing required columns: {sorted(missing)}")
-            dfs[name] = df[SCHEMAS["requests"]]
-        else:
-            dfs[name] = _load_csv(name)
+        override = requests_path if name == "requests" else None
+        dfs[name] = _load_csv(name, override)
         if verbose:
             print(f"  {name}: {len(dfs[name])} rows")
 
