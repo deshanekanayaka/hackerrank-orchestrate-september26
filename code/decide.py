@@ -1,6 +1,6 @@
 """Deterministic decision layer: produce all 8 output fields from forecast + inputs."""
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Optional
 
@@ -8,9 +8,6 @@ import pandas as pd
 
 from forecast import CashFlow, UserForecast, FORECAST_DAYS
 from load_inputs import Inputs
-
-AFFORDABILITY_STATUSES = frozenset({'affordable_now', 'affordable_with_plan', 'affordable_later', 'not_affordable'})
-PAYMENT_METHODS = frozenset({'full_payment', 'partial_payment', 'installments', 'wait', 'not_recommended'})
 
 
 @dataclass
@@ -25,25 +22,12 @@ class DecisionRow:
     decision_explanation: str
 
     def to_dict(self) -> dict:
-        return {
-            'request_id': self.request_id,
-            'amount_safe_to_pay': self.amount_safe_to_pay,
-            'affordability_status': self.affordability_status,
-            'recommended_payment_method': self.recommended_payment_method,
-            'payment_plan': self.payment_plan,
-            'earliest_date_for_full_payment': self.earliest_date_for_full_payment,
-            'spending_changes_needed': self.spending_changes_needed,
-            'decision_explanation': self.decision_explanation,
-        }
+        return asdict(self)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _fmt_date(d: date) -> str:
-    return d.strftime('%Y-%m-%d')
-
 
 def _fmt_amount(x: float) -> str:
     # Round to 2 decimal places; drop trailing zeros for integers
@@ -69,18 +53,7 @@ def _max_installment_months(profile_row) -> Optional[int]:
         return None
 
 
-def _protected_cats(profile_row) -> set[str]:
-    raw = profile_row['expense_categories_to_protect']
-    return set(str(raw).split('|')) if raw and str(raw).strip() else set()
-
-
-def _stoppable_cats(profile_row) -> set[str]:
-    raw = profile_row['expense_categories_user_is_willing_to_stop']
-    return set(str(raw).split('|')) if raw and str(raw).strip() else set()
-
-
-def _reducible_cats(profile_row) -> set[str]:
-    raw = profile_row['expense_categories_user_is_willing_to_reduce']
+def _pipe_set(raw) -> set[str]:
     return set(str(raw).split('|')) if raw and str(raw).strip() else set()
 
 
@@ -100,13 +73,9 @@ def _check_installments(
 # Explanation builders (code-generated, never model-written)
 # ---------------------------------------------------------------------------
 
-def _explain(template: str) -> str:
-    return template.strip()
-
-
 def _expl_full_today(fc: UserForecast, amt: float, rdate: date) -> str:
     return (
-        f"Pay {fc.home_currency} {_fmt_amount(amt)} in full on {_fmt_date(rdate)}. "
+        f"Pay {fc.home_currency} {_fmt_amount(amt)} in full on {rdate.isoformat()}. "
         f"Balance stays above the {fc.home_currency} {_fmt_amount(fc.min_balance)} minimum "
         f"throughout the 90-day forecast."
     )
@@ -117,7 +86,7 @@ def _expl_installments(
 ) -> str:
     return (
         f"Use {n} installment{'s' if n > 1 else ''} of {fc.home_currency} {_fmt_amount(pay_amount)}, "
-        f"starting {_fmt_date(first_d)}. "
+        f"starting {first_d.isoformat()}. "
         f"Total payable: {fc.home_currency} {_fmt_amount(total)}. "
         f"Balance stays above the {fc.home_currency} {_fmt_amount(fc.min_balance)} minimum."
     )
@@ -127,15 +96,15 @@ def _expl_partial(
     fc: UserForecast, first_amt: float, second_amt: float, rdate: date, second_d: date
 ) -> str:
     return (
-        f"Pay {fc.home_currency} {_fmt_amount(first_amt)} on {_fmt_date(rdate)}, "
-        f"then {fc.home_currency} {_fmt_amount(second_amt)} on {_fmt_date(second_d)}. "
+        f"Pay {fc.home_currency} {_fmt_amount(first_amt)} on {rdate.isoformat()}, "
+        f"then {fc.home_currency} {_fmt_amount(second_amt)} on {second_d.isoformat()}. "
         f"Balance stays above the {fc.home_currency} {_fmt_amount(fc.min_balance)} minimum."
     )
 
 
 def _expl_wait(fc: UserForecast, amt: float, rdate: date, pay_d: date) -> str:
     return (
-        f"Wait until {_fmt_date(pay_d)}, then pay {fc.home_currency} {_fmt_amount(amt)} in full. "
+        f"Wait until {pay_d.isoformat()}, then pay {fc.home_currency} {_fmt_amount(amt)} in full. "
         f"Paying earlier would put the {fc.home_currency} {_fmt_amount(fc.min_balance)} minimum at risk."
     )
 
@@ -163,7 +132,7 @@ def _expl_with_changes(fc: UserForecast, amt: float, pay_d: date, changes: list[
     return (
         f"Reducing flexible spending ({change_str}) brings the balance above the "
         f"{fc.home_currency} {_fmt_amount(fc.min_balance)} minimum. "
-        f"Pay {fc.home_currency} {_fmt_amount(amt)} on {_fmt_date(pay_d)}."
+        f"Pay {fc.home_currency} {_fmt_amount(amt)} on {pay_d.isoformat()}."
     )
 
 
@@ -177,15 +146,11 @@ def _find_spending_changes(
     profile_row,
     requested_amount: float,
     desired_completion: date,
-) -> list[str]:
-    """
-    Find up to 3 flexible expense changes that would make the request affordable.
-    Returns a list of 'stop:<event_id>' or 'reduce_to:<event_id>:<amount>' strings,
-    or an empty list if no changes help or are available.
-    """
-    protected = _protected_cats(profile_row)
-    stoppable = _stoppable_cats(profile_row)
-    reducible = _reducible_cats(profile_row)
+) -> tuple[list[str], Optional[UserForecast]]:
+    """Return (changes, modified_forecast) when spending changes enable the request, else ([], None)."""
+    protected = _pipe_set(profile_row['expense_categories_to_protect'])
+    stoppable = _pipe_set(profile_row['expense_categories_user_is_willing_to_stop'])
+    reducible = _pipe_set(profile_row['expense_categories_user_is_willing_to_reduce'])
 
     # Recurring labels in the forecast (only these can be changed)
     recurring_labels = {
@@ -270,9 +235,9 @@ def _find_spending_changes(
         )
         earliest = modified.earliest_full_payment_date(requested_amount)
         if earliest is not None and earliest <= desired_completion:
-            return change_strings
+            return change_strings, modified
 
-    return []
+    return [], None
 
 
 # ---------------------------------------------------------------------------
@@ -311,7 +276,7 @@ def _decide_one(
 
     amount_safe = forecast.amount_safe_to_pay(requested_amount)
     earliest_full = forecast.earliest_full_payment_date(requested_amount)
-    earliest_full_str = _fmt_date(earliest_full) if earliest_full else ''
+    earliest_full_str = earliest_full.isoformat() if earliest_full else ''
 
     req_opts = options_df[options_df['request_id'] == request_id].copy()
 
@@ -322,8 +287,8 @@ def _decide_one(
             amount_safe_to_pay=requested_amount,
             affordability_status='affordable_now',
             recommended_payment_method='full_payment',
-            payment_plan=f"{_fmt_date(request_date)}:{_fmt_amount(requested_amount)}",
-            earliest_date_for_full_payment=_fmt_date(request_date),
+            payment_plan=f"{request_date.isoformat()}:{_fmt_amount(requested_amount)}",
+            earliest_date_for_full_payment=request_date.isoformat(),
             spending_changes_needed='none',
             decision_explanation=_expl_full_today(forecast, requested_amount, request_date),
         )
@@ -371,7 +336,7 @@ def _decide_one(
             if total_payable > requested_amount * 1.001 and (_wait_viable or _partial_viable):
                 continue
 
-            plan = '|'.join(f"{_fmt_date(d)}:{_fmt_amount(pay_amount)}" for d in pay_dates)
+            plan = '|'.join(f"{d.isoformat()}:{_fmt_amount(pay_amount)}" for d in pay_dates)
             return DecisionRow(
                 request_id=request_id,
                 amount_safe_to_pay=amount_safe,
@@ -385,7 +350,7 @@ def _decide_one(
 
     # --- 3. Wait for full payment (affordable_later, fewer payments than partial) ---
     if _wait_viable:
-        plan = f"{_fmt_date(earliest_full)}:{_fmt_amount(requested_amount)}"
+        plan = f"{earliest_full.isoformat()}:{_fmt_amount(requested_amount)}"
         return DecisionRow(
             request_id=request_id,
             amount_safe_to_pay=amount_safe,
@@ -401,8 +366,8 @@ def _decide_one(
     if _partial_viable:
         remaining = requested_amount - amount_safe
         plan = (
-            f"{_fmt_date(request_date)}:{_fmt_amount(amount_safe)}|"
-            f"{_fmt_date(earliest_full)}:{_fmt_amount(remaining)}"
+            f"{request_date.isoformat()}:{_fmt_amount(amount_safe)}|"
+            f"{earliest_full.isoformat()}:{_fmt_amount(remaining)}"
         )
         return DecisionRow(
             request_id=request_id,
@@ -416,39 +381,13 @@ def _decide_one(
         )
 
     # --- 5. Spending changes (affordable_with_plan or affordable_later) ---
-    changes = _find_spending_changes(
+    changes, modified = _find_spending_changes(
         forecast, user_events, profile_row, requested_amount, desired_completion
     )
-    if changes:
-        # Rebuild modified forecast with stopped categories
-        stop_cats = set()
-        for ch in changes:
-            if ch.startswith('stop:'):
-                ev_id = ch.split(':')[1]
-                label = next(
-                    (cf.label for cf in forecast.cash_flows
-                     if cf.event_id == f"recurring:{ev_id}" or cf.event_id == ev_id),
-                    None
-                )
-                if label and label.startswith('recurring:'):
-                    stop_cats.add(label.split(':', 1)[1])
-        modified_flows = [
-            cf for cf in forecast.cash_flows
-            if not (cf.label.startswith('recurring:') and cf.label.split(':', 1)[1] in stop_cats)
-        ]
-        modified = UserForecast(
-            user_id=forecast.user_id,
-            request_date=forecast.request_date,
-            start_balance=forecast.start_balance,
-            min_balance=forecast.min_balance,
-            home_currency=forecast.home_currency,
-            cash_flows=sorted(modified_flows, key=lambda cf: cf.on_date),
-            events_used=forecast.events_used,
-            evidence_complete=forecast.evidence_complete,
-        )
+    if changes and modified is not None:
         earliest_mod = modified.earliest_full_payment_date(requested_amount)
         if earliest_mod is not None:
-            plan = f"{_fmt_date(earliest_mod)}:{_fmt_amount(requested_amount)}"
+            plan = f"{earliest_mod.isoformat()}:{_fmt_amount(requested_amount)}"
             changes_str = '|'.join(changes)
             status = 'affordable_with_plan' if earliest_mod <= desired_completion else 'affordable_later'
             return DecisionRow(
@@ -457,7 +396,7 @@ def _decide_one(
                 affordability_status=status,
                 recommended_payment_method='wait' if earliest_mod > request_date else 'full_payment',
                 payment_plan=plan,
-                earliest_date_for_full_payment=_fmt_date(earliest_mod) if earliest_mod else '',
+                earliest_date_for_full_payment=earliest_mod.isoformat(),
                 spending_changes_needed=changes_str,
                 decision_explanation=_expl_with_changes(forecast, requested_amount, earliest_mod, changes),
             )
@@ -465,7 +404,7 @@ def _decide_one(
     # --- 6. Not affordable ---
     note = ''
     if earliest_full is not None:
-        note = f"Earliest safe date ({_fmt_date(earliest_full)}) is after the desired completion date."
+        note = f"Earliest safe date ({earliest_full.isoformat()}) is after the desired completion date."
     return DecisionRow(
         request_id=request_id,
         amount_safe_to_pay=amount_safe,

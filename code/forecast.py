@@ -1,6 +1,8 @@
 """90-day balance projection per user."""
 from __future__ import annotations
+import calendar
 import statistics
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Optional
@@ -39,24 +41,17 @@ class UserForecast:
             cf.delta for cf in self.cash_flows if cf.on_date <= d
         )
 
-    def _window_dates(self, from_date: date, to_date: date) -> list[date]:
-        return sorted(set(
-            [from_date]
-            + [cf.on_date for cf in self.cash_flows
-               if from_date <= cf.on_date <= to_date]
-        ))
-
     def amount_safe_to_pay(self, requested: float) -> float:
         """Max payable on request_date without breaching min_balance over 90 days."""
         end = self.request_date + timedelta(days=FORECAST_DAYS)
-        dates = self._window_dates(self.request_date, end)
+        dates = sorted(set([self.request_date] + [cf.on_date for cf in self.cash_flows if self.request_date <= cf.on_date <= end]))
         min_bal = min(self.balance_on(d) for d in dates)
         return min(requested, max(0.0, min_bal - self.min_balance))
 
     def earliest_full_payment_date(self, requested: float) -> Optional[date]:
         """First date where paying requested keeps balance >= min_balance from that date to end."""
         end = self.request_date + timedelta(days=FORECAST_DAYS)
-        dates = self._window_dates(self.request_date, end)
+        dates = sorted(set([self.request_date] + [cf.on_date for cf in self.cash_flows if self.request_date <= cf.on_date <= end]))
         for i, d in enumerate(dates):
             suffix_min = min(self.balance_on(d2) for d2 in dates[i:])
             if suffix_min - requested >= self.min_balance:
@@ -256,7 +251,6 @@ def _infer_recurring(
         # For income: cluster by day-of-month so bonus payments on different days
         # don't pollute the monthly salary interval detection.
         if is_income and len(date_list) > min_occ:
-            from collections import Counter
             mode_dom = Counter(d.day for d in date_list).most_common(1)[0][0]
             filtered_idx = [i for i, d in enumerate(date_list) if abs(d.day - mode_dom) <= 3]
             if len(filtered_idx) >= min_occ and len(filtered_idx) < len(date_list):
@@ -280,7 +274,6 @@ def _infer_recurring(
         result: list[CashFlow] = []
         # For monthly (30-day) intervals, snap to the same day-of-month to avoid drift
         if interval == 30:
-            import calendar
             month = last_date.month % 12 + 1
             year = last_date.year + (1 if last_date.month == 12 else 0)
             day = min(last_date.day, calendar.monthrange(year, month)[1])
@@ -300,7 +293,6 @@ def _infer_recurring(
                     ))
             # Advance: for monthly, stay on same day-of-month
             if interval == 30:
-                import calendar
                 month = next_d.month % 12 + 1
                 year = next_d.year + (1 if next_d.month == 12 else 0)
                 day = min(next_d.day, calendar.monthrange(year, month)[1])
