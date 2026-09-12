@@ -4,6 +4,17 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 5: Forecast and decision layer implementation choices
+
+**Decision**: decision priority order is full_payment_today, installments (if no no-fee plan exists), wait, partial, spending_changes, then not_affordable.
+**Income detection**: day-of-month clustering (modal day ±3) filters bonus payments before `_detect_interval`. This fixes income detection for users 11 and 13.
+**Cost guard**: if a no-fee plan reaches the deadline, installment options with `total_payable > requested_amount` are rejected.
+**Known gaps**: requests 08 and 10 need message amendments that have no `related_event_id`. Requests 11, 13, 21, and 22 have small forecast precision differences.
+**Accuracy**: affordability_status 19/25 (76%), recommended_payment_method 21/25 (84%), earliest_date_for_full_payment 18/25 (72%).
+**Where**: `code/forecast.py`, `code/decide.py`
+
+---
+
 ### Stage 4: Model call layer implementation choices
 
 **Decision**: `strip_fences` lives in `prompts.py` and is imported by both `ocr.py` and `parse_messages.py`, avoiding duplication.
@@ -18,7 +29,7 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 **Decision**: prompt strings and response dataclasses live together in `code/prompts.py`. Every allowed intent value is listed verbatim in the prompt text.
 **Rejected**: pydantic models (not installed, adds a new dependency). Inline dict key checks in Stage 4 (ad-hoc, not reusable).
-**Risk**: `new_date` format is not regex-validated. `forecast.py` will coerce a bad date to None rather than reject the whole message result.
+**Risk**: `new_date` format is not regex-checked. `forecast.py` will coerce a bad date to None rather than reject the whole message result.
 **Where**: `code/prompts.py`
 
 ---
