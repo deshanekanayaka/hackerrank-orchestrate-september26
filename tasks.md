@@ -9,11 +9,11 @@ Maintained by Claude Code. This file plus `docs/` rebuilds lost context after a 
 
 ## Next action
 
-Stage 8: evidence verification. If our output cites sources, check that those sources were actually consulted and support the answer.
+Stage 9: adversarial input detectors. Scan request_text for embedded instructions before any forecast or decision runs.
 
 ## In progress
 
-- [ ] Stage 8: evidence verification
+- [ ] Stage 9: adversarial input detectors
 
 ## Blocked
 
@@ -65,7 +65,7 @@ Stage 8: evidence verification. If our output cites sources, check that those so
 - [x] 5 deterministic decision layer
 - [x] 6 evaluation script, per-field accuracy
 - [x] 7 guardrails: schema, whitelist, retry, overrides, abstain
-- [ ] 8 evidence verification (if output cites sources)
+- [x] 8 evidence verification (if output cites sources)
 - [ ] 9 adversarial input detectors
 - [ ] 10 concurrency cap and backoff
 - [ ] Two consecutive runs produce identical output

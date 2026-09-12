@@ -8,8 +8,8 @@ import pandas as pd
 
 # Phrases that indicate an attempt to inject instructions via message text
 _ADVERSARIAL_RE = re.compile(
-    r"\b(ignore (previous |all )?(instructions?|rules?|prompt)|"
-    r"you are now|new instructions?|forget (everything|what)|"
+    r"\b(?:ignore (?:previous |all )?(?:instructions?|rules?|prompt)|"
+    r"you are now|new instructions?|forget (?:everything|what)|"
     r"disregard|system prompt|act as)\b",
     re.IGNORECASE,
 )

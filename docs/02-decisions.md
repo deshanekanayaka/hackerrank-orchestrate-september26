@@ -4,6 +4,16 @@ Newest first. One entry per architectural choice. Seven lines maximum per entry.
 
 ---
 
+### Stage 8: Evidence verification implementation choices
+
+**Decision**: `_verify_spending_changes` in `decide.py` checks that every event_id cited in `spending_changes_needed` exists in `financial_events.csv` for that user.
+**What we check**: `spending_changes_needed` is the only field that names event IDs. `decision_explanation` is code-generated text with no event ID names, so it needs no check.
+**Downgrade rule**: a missing event ID clears `spending_changes_needed` to `none`. If `affordability_status` was `affordable_with_plan`, it downgrades to `not_affordable` because the spending changes were load-bearing for that verdict.
+**Result**: no bad IDs found on the 25 sample requests. This shows that `_find_spending_changes` already selects only real events.
+**Regex fix**: adversarial regex changed from capturing to non-capturing groups to silence a pandas `UserWarning` from `str.contains`.
+
+---
+
 ### Stage 7: Guardrails implementation choices
 
 **model_client.py**: retry count raised from 2 to 3 attempts. Rate-limit and server errors (`RateLimitError`, `APIStatusError`) now retry with 2s/4s exponential backoff. Malformed-output errors retry immediately.

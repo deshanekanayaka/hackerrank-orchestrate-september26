@@ -461,6 +461,30 @@ def _validate_row(row: dict, request_id: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Evidence verification
+# ---------------------------------------------------------------------------
+
+def _verify_spending_changes(row: dict, user_id: str, events_df: pd.DataFrame) -> dict:
+    changes = row.get("spending_changes_needed", "none")
+    if not changes or changes == "none":
+        return row
+
+    valid_ids = set(events_df[events_df["user_id"] == user_id]["event_id"])
+    bad = [part.split(":")[1] for part in changes.split("|")
+           if ":" in part and part.split(":")[1] not in valid_ids]
+
+    if bad:
+        print(f"  [warn] {row['request_id']} spending_changes cited unknown event(s) {', '.join(bad)} — clearing", file=sys.stderr)
+        row["spending_changes_needed"] = "none"
+        if row.get("affordability_status") == "affordable_with_plan":
+            row["affordability_status"] = "not_affordable"
+            row["recommended_payment_method"] = "not_recommended"
+            row["decision_explanation"] += " [Evidence check failed: cited event(s) not found.]"
+
+    return row
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -489,7 +513,8 @@ def decide_all(inputs: Inputs, forecasts: dict[str, UserForecast]) -> list[dict]
         user_events = inputs.events[inputs.events['user_id'] == user_id]
 
         decision = _decide_one(req_row, inputs.options, forecast, profile_row, user_events)
-        rows.append(_validate_row(decision.to_dict(), req_row['request_id']))
+        validated = _validate_row(decision.to_dict(), req_row['request_id'])
+        rows.append(_verify_spending_changes(validated, user_id, inputs.events))
 
     return rows
 
